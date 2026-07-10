@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hoyo 18 · Reserva tu mesa | Casa Costa</title>
+<meta name="description" content="Reserva tu lugar en la terraza del Hoyo 18. 16 al 19 de julio." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#081a30;
+    --navy-800:#0f2a4a;
+    --navy-700:#1b3c61;
+    --navy-600:#2a4d76;
+    --cream:#f5f0e6;
+    --sand:#e8ddc8;
+    --wood:#8a6a45;
+    --ocean:#3f7f92;
+    --ink:#16232f;
+    --white:#ffffff;
+    --radius-s:10px;
+    --radius-m:16px;
+    --radius-l:28px;
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  p{margin:0;}
+  img{max-width:100%;display:block;}
+  button{font-family:inherit;}
+  .wrap{max-width:640px;margin:0 auto;padding:0 20px;}
+
+  /* ---------- Header ---------- */
+  .topbar{
+    background:var(--cream);
+    padding:14px 0;
+    border-bottom:1px solid rgba(22,35,47,0.08);
+  }
+  .topbar .wrap{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+  }
+  .brand-lockup{display:flex;align-items:center;gap:14px;}
+  .brand-lockup img{height:34px;width:auto;mix-blend-mode:multiply;}
+  .brand-divider{width:1px;height:24px;background:rgba(22,35,47,0.15);}
+  .brand-lockup .solution img{height:19px;}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    background:
+      linear-gradient(180deg, rgba(8,26,48,0.93) 0%, rgba(15,42,74,0.88) 62%, rgba(27,60,97,0.85) 100%),
+      url('assets/lounge-render.jpeg') center 68% / cover no-repeat;
+    color:var(--white);
+    padding:56px 0 64px;
+    overflow:hidden;
+  }
+  .hero-signature{
+    position:absolute;
+    right:-60px;
+    top:-40px;
+    width:320px;
+    height:320px;
+    opacity:0.08;
+    pointer-events:none;
+  }
+  .hero .wrap{position:relative;z-index:1;}
+  .eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    letter-spacing:0.02em;
+    color:var(--sand);
+    margin-bottom:18px;
+    opacity:0;
+    animation:rise 700ms var(--ease) forwards;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--ocean);}
+  .hero h1{
+    font-size:clamp(2.2rem, 8vw, 3.4rem);
+    line-height:1.04;
+    opacity:0;
+    animation:rise 700ms var(--ease) 80ms forwards;
+  }
+  .hero h1 em{font-style:italic;color:var(--sand);}
+  .hero-dates{
+    margin-top:18px;
+    font-size:17px;
+    color:rgba(245,240,230,0.82);
+    opacity:0;
+    animation:rise 700ms var(--ease) 160ms forwards;
+  }
+  .hero-desc{
+    margin-top:14px;
+    max-width:46ch;
+    font-size:15px;
+    line-height:1.55;
+    color:rgba(245,240,230,0.72);
+    opacity:0;
+    animation:rise 700ms var(--ease) 220ms forwards;
+  }
+  @keyframes rise{
+    from{opacity:0; transform:translateY(14px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .eyebrow,.hero h1,.hero-dates,.hero-desc,.reveal{animation:none !important; opacity:1 !important; transform:none !important;}
+  }
+
+  /* ---------- Form shell ---------- */
+  main{padding:36px 0 80px;}
+  .card{
+    background:var(--white);
+    border-radius:var(--radius-l);
+    border:1px solid rgba(22,35,47,0.08);
+    padding:28px 24px;
+    margin-bottom:20px;
+  }
+  .field-label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--navy-800);
+    margin-bottom:8px;
+  }
+  .field-hint{
+    font-size:12.5px;
+    color:rgba(22,35,47,0.55);
+    margin-top:6px;
+    line-height:1.4;
+  }
+  input[type=text], input[type=email], input[type=tel]{
+    width:100%;
+    padding:13px 14px;
+    border-radius:var(--radius-s);
+    border:1.5px solid var(--sand);
+    background:var(--cream);
+    font-size:16px;
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    transition:border-color 200ms var(--ease), background 200ms var(--ease);
+  }
+  input:focus{
+    outline:none;
+    border-color:var(--wood);
+    background:var(--white);
+  }
+  .field{margin-bottom:20px;}
+  .field:last-child{margin-bottom:0;}
+
+  /* Guest stepper */
+  .stepper{
+    display:flex;
+    align-items:center;
+    gap:0;
+    border:1.5px solid var(--sand);
+    border-radius:var(--radius-s);
+    background:var(--cream);
+    width:fit-content;
+    overflow:hidden;
+  }
+  .stepper button{
+    width:44px;height:44px;
+    border:none;background:transparent;
+    font-size:19px;color:var(--navy-800);
+    cursor:pointer;
+    transition:background 150ms var(--ease);
+  }
+  .stepper button:hover{background:var(--sand);}
+  .stepper button:active{transform:scale(0.94);}
+  .stepper output{
+    min-width:52px;text-align:center;
+    font-size:17px;font-weight:600;
+    font-family:'Fraunces', serif;
+  }
+
+  /* Date pills */
+  .pill-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .pill{
+    padding:11px 16px;
+    border-radius:999px;
+    border:1.5px solid var(--sand);
+    background:var(--cream);
+    font-size:14px;
+    font-weight:600;
+    color:var(--navy-800);
+    cursor:pointer;
+    transition:all 200ms var(--ease);
+  }
+  .pill:hover{border-color:var(--wood);}
+  .pill.active{
+    background:var(--navy-800);
+    border-color:var(--navy-800);
+    color:var(--white);
+  }
+
+  /* Slot grid */
+  .slot-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(96px, 1fr));
+    gap:8px;
+  }
+  .slot{
+    padding:12px 8px;
+    border-radius:var(--radius-s);
+    border:1.5px solid var(--sand);
+    background:var(--cream);
+    font-size:14px;
+    font-weight:600;
+    color:var(--navy-800);
+    cursor:pointer;
+    text-align:center;
+    transition:all 200ms var(--ease);
+  }
+  .slot:hover:not(.full){border-color:var(--wood);}
+  .slot.active{
+    background:var(--ocean);
+    border-color:var(--ocean);
+    color:var(--white);
+  }
+  .slot.full{
+    background:var(--sand);
+    color:rgba(22,35,47,0.38);
+    cursor:not-allowed;
+    text-decoration:line-through;
+    text-decoration-color:rgba(22,35,47,0.25);
+  }
+  .slot-status{
+    font-size:12.5px;
+    color:rgba(22,35,47,0.55);
+    margin-top:10px;
+  }
+
+  /* Card guarantee section */
+  .guarantee-note{
+    display:flex;
+    gap:10px;
+    padding:14px 16px;
+    background:var(--cream);
+    border-radius:var(--radius-s);
+    border:1px solid var(--sand);
+    margin-bottom:18px;
+  }
+  .guarantee-note svg{flex-shrink:0;margin-top:2px;}
+  .guarantee-note p{font-size:13.5px;line-height:1.5;color:rgba(22,35,47,0.8);}
+  .guarantee-note strong{color:var(--navy-800);}
+  #card-element{
+    padding:13px 14px;
+    border-radius:var(--radius-s);
+    border:1.5px solid var(--sand);
+    background:var(--cream);
+    transition:border-color 200ms var(--ease);
+  }
+  #card-element.StripeElement--focus{border-color:var(--wood); background:var(--white);}
+  #card-errors{color:#a4453a; font-size:13px; margin-top:8px; min-height:16px;}
+
+  /* Submit */
+  .submit-btn{
+    width:100%;
+    padding:17px;
+    border-radius:999px;
+    border:none;
+    background:var(--navy-800);
+    color:var(--white);
+    font-size:16px;
+    font-weight:600;
+    font-family:'Work Sans', sans-serif;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    transition:background 200ms var(--ease), transform 150ms var(--ease);
+  }
+  .submit-btn:hover{background:var(--navy-700);}
+  .submit-btn:active{transform:scale(0.985);}
+  .submit-btn:disabled{background:var(--sand); color:rgba(22,35,47,0.4); cursor:not-allowed;}
+  .submit-btn .spinner{
+    width:16px;height:16px;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:var(--white);
+    border-radius:50%;
+    animation:spin 700ms linear infinite;
+    display:none;
+  }
+  .submit-btn.loading .spinner{display:block;}
+  .submit-btn.loading .btn-label{opacity:0.85;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .form-error{
+    color:#a4453a;
+    font-size:13.5px;
+    text-align:center;
+    margin-top:12px;
+    min-height:18px;
+  }
+
+  .legal{
+    text-align:center;
+    font-size:12px;
+    color:rgba(22,35,47,0.45);
+    margin-top:16px;
+    line-height:1.5;
+  }
+
+  /* ---------- Confirmation ---------- */
+  #confirmScreen{
+    display:none;
+    min-height:100dvh;
+    background:linear-gradient(180deg, var(--navy-950) 0%, var(--navy-800) 100%);
+    color:var(--white);
+  }
+  #confirmScreen .wrap{padding:64px 20px 48px; text-align:center;}
+  .confirm-signature{width:76px;height:76px;margin:0 auto 24px;opacity:0.9;}
+  .confirm-code{
+    font-family:'Fraunces', serif;
+    font-size:clamp(2.6rem, 12vw, 3.6rem);
+    letter-spacing:0.02em;
+    margin:18px 0 6px;
+  }
+  .confirm-summary{
+    text-align:left;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:var(--radius-l);
+    padding:22px;
+    margin:32px 0;
+  }
+  .summary-row{
+    display:flex;justify-content:space-between;gap:12px;
+    padding:11px 0;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    font-size:14.5px;
+  }
+  .summary-row:last-child{border-bottom:none;}
+  .summary-row span:first-child{color:rgba(245,240,230,0.6);}
+  .summary-row span:last-child{font-weight:600;text-align:right;}
+  .wa-btn{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:15px 26px;
+    border-radius:999px;
+    background:#25D366;
+    color:var(--navy-950);
+    font-weight:700;
+    font-size:14.5px;
+    text-decoration:none;
+    transition:transform 150ms var(--ease);
+  }
+  .wa-btn:hover{transform:translateY(-1px);}
+
+  footer{
+    background:var(--navy-950);
+    padding:28px 0;
+    text-align:center;
+  }
+  footer .brand-lockup{
+    justify-content:center;
+    background:var(--cream);
+    border-radius:999px;
+    padding:10px 20px;
+    width:fit-content;
+    margin:0 auto;
+  }
+  footer .brand-lockup img{height:22px;mix-blend-mode:multiply;}
+  footer .brand-lockup .solution img{height:13px;}
+  footer p{color:rgba(245,240,230,0.4); font-size:12px; margin-top:14px;}
+
+  @media (max-width:420px){
+    .card{padding:22px 18px;}
+    .slot-grid{grid-template-columns:repeat(2, 1fr);}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand-lockup">
+      <img src="assets/casa-costa-logo.jpg" alt="Casa Costa" />
+      <div class="brand-divider"></div>
+      <div class="solution"><img src="assets/solution-services-logo.jpg" alt="Solution Services DownTown Punta Cana" /></div>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <svg class="hero-signature" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="100" cy="100" r="72" stroke="white" stroke-width="2"/>
+    <circle cx="100" cy="100" r="10" stroke="white" stroke-width="2"/>
+    <g stroke="white" stroke-width="2">
+      <line x1="100" y1="10" x2="100" y2="34"/>
+      <line x1="100" y1="166" x2="100" y2="190"/>
+      <line x1="10" y1="100" x2="34" y2="100"/>
+      <line x1="166" y1="100" x2="190" y2="100"/>
+      <line x1="35" y1="35" x2="52" y2="52"/>
+      <line x1="148" y1="148" x2="165" y2="165"/>
+      <line x1="165" y1="35" x2="148" y2="52"/>
+      <line x1="52" y1="148" x2="35" y2="165"/>
+    </g>
+    <path d="M100 60 L100 100 L130 88 Z" fill="white"/>
+    <text x="100" y="128" text-anchor="middle" font-family="Fraunces, serif" font-size="18" fill="white" font-weight="600">18</text>
+  </svg>
+  <div class="wrap">
+    <div class="eyebrow"><span class="dot"></span> Terraza del Hoyo 18 · Casa Costa</div>
+    <h1>Reserva tu mesa<br><em>frente al mar</em></h1>
+    <p class="hero-dates">16 al 19 de julio</p>
+    <p class="hero-desc">Un lugar en el lounge con vista al green del 18 y al Caribe. Contanos cuántos son y a qué hora llegan: tu tarjeta solo queda de garantía, no se cobra nada al reservar.</p>
+  </div>
+</section>
+
+<main id="formScreen">
+  <div class="wrap">
+
+    <form id="rsvpForm" novalidate>
+
+      <div class="card">
+        <div class="field">
+          <label class="field-label" for="fullName">Nombre del titular de la reserva</label>
+          <input type="text" id="fullName" name="fullName" autocomplete="name" required placeholder="Nombre y apellido" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="email">Correo electrónico</label>
+          <input type="email" id="email" name="email" autocomplete="email" required placeholder="tu@correo.com" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="phone">Teléfono (WhatsApp)</label>
+          <input type="tel" id="phone" name="phone" autocomplete="tel" required placeholder="+1 809 000 0000" />
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label class="field-label">¿Cuántas personas?</label>
+          <div class="stepper">
+            <button type="button" id="guestMinus" aria-label="Restar persona">−</button>
+            <output id="guestCount">2</output>
+            <button type="button" id="guestPlus" aria-label="Sumar persona">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="field">
+          <label class="field-label">Día</label>
+          <div class="pill-row" id="dateRow"></div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label class="field-label">Hora</label>
+          <div class="slot-grid" id="slotGrid"></div>
+          <p class="slot-status" id="slotStatus">Elegí un día para ver los horarios disponibles.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="guarantee-note">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a6a45" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V5l8-3z"/></svg>
+          <p><strong>Tu tarjeta solo garantiza la reserva.</strong> No se realiza ningún cargo ahora: la usamos únicamente para asegurar la mesa y el consumo dentro del sitio. El número de tarjeta nunca pasa por nuestros servidores.</p>
+        </div>
+        <label class="field-label">Tarjeta de crédito o débito</label>
+        <div id="card-element"></div>
+        <div id="card-errors" role="alert"></div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <span class="btn-label">Confirmar reserva</span>
+        <span class="spinner"></span>
+      </button>
+      <p class="form-error" id="formError"></p>
+      <p class="legal">Al reservar aceptás que Casa Costa retenga tu tarjeta únicamente como garantía de la reserva, sin cargos automáticos.</p>
+    </form>
+  </div>
+</main>
+
+<section id="confirmScreen">
+  <div class="wrap">
+    <svg class="confirm-signature" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="72" stroke="white" stroke-width="2"/>
+      <circle cx="100" cy="100" r="10" stroke="white" stroke-width="2"/>
+      <g stroke="white" stroke-width="2">
+        <line x1="100" y1="10" x2="100" y2="34"/><line x1="100" y1="166" x2="100" y2="190"/>
+        <line x1="10" y1="100" x2="34" y2="100"/><line x1="166" y1="100" x2="190" y2="100"/>
+        <line x1="35" y1="35" x2="52" y2="52"/><line x1="148" y1="148" x2="165" y2="165"/>
+        <line x1="165" y1="35" x2="148" y2="52"/><line x1="52" y1="148" x2="35" y2="165"/>
+      </g>
+      <path d="M100 60 L100 100 L130 88 Z" fill="white"/>
+      <text x="100" y="128" text-anchor="middle" font-family="Fraunces, serif" font-size="18" fill="white" font-weight="600">18</text>
+    </svg>
+    <p class="eyebrow" style="justify-content:center;"><span class="dot"></span> Reserva confirmada</p>
+    <div class="confirm-code" id="confirmCode">H18-0000</div>
+    <p style="color:rgba(245,240,230,0.7); font-size:14.5px;">Guardá este código. Te esperamos en la terraza del Hoyo 18.</p>
+
+    <div class="confirm-summary" id="confirmSummary"></div>
+
+    <a href="#" id="waLink" class="wa-btn" target="_blank" rel="noopener">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#0b2b1e"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.64 0-3.16-.47-4.45-1.28l-.32-.19-3.11.82.83-3.04-.21-.31A7.94 7.94 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
+      Avisar por WhatsApp
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand-lockup">
+      <img src="assets/casa-costa-logo.jpg" alt="Casa Costa" />
+      <div class="brand-divider"></div>
+      <img src="assets/solution-services-logo.jpg" alt="Solution Services" />
+    </div>
+    <p>Terraza Hoyo 18 · 16 al 19 de julio</p>
+  </div>
+</footer>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+/* =========================================================
+   CONFIGURACIÓN — completar antes de publicar
+   ========================================================= */
+const CONFIG = {
+  // URL del Web App de Apps Script (Implementar > Nueva implementación)
+  APPS_SCRIPT_URL: "PEGAR_URL_DE_APPS_SCRIPT_AQUI",
+  // Clave PÚBLICA de Stripe (pk_live_... o pk_test_...) — esta sí va en el frontend
+  STRIPE_PUBLISHABLE_KEY: "PEGAR_PUBLISHABLE_KEY_DE_STRIPE_AQUI",
+  // Número de WhatsApp del equipo del evento, formato internacional sin +
+  WHATSAPP_NUMBER: "18090000000",
+  // Fechas del evento
+  DATES: [
+    { value: "2026-07-16", label: "Jue 16" },
+    { value: "2026-07-17", label: "Vie 17" },
+    { value: "2026-07-18", label: "Sáb 18" },
+    { value: "2026-07-19", label: "Dom 19" }
+  ],
+  // Franjas horarias — un solo lugar para ajustar
+  SLOT_TIMES: ["10:00","11:00","12:00","13:00","14:00","15:00","16:00"],
+  CAPACITY_PER_SLOT: 4
+};
+
+/* =========================================================
+   Estado
+   ========================================================= */
+let state = { guests: 2, date: null, slot: null, availability: {} };
+
+/* ---------- Guests stepper ---------- */
+const guestCountEl = document.getElementById('guestCount');
+document.getElementById('guestMinus').addEventListener('click', () => {
+  state.guests = Math.max(1, state.guests - 1);
+  guestCountEl.textContent = state.guests;
+});
+document.getElementById('guestPlus').addEventListener('click', () => {
+  state.guests = Math.min(12, state.guests + 1);
+  guestCountEl.textContent = state.guests;
+});
+
+/* ---------- Slot grid ---------- */
+const slotGrid = document.getElementById('slotGrid');
+const slotStatus = document.getElementById('slotStatus');
+
+function renderSlots(){
+  slotGrid.innerHTML = '';
+  const counts = (state.availability[state.date]) || {};
+  CONFIG.SLOT_TIMES.forEach(time => {
+    const taken = counts[time] || 0;
+    const full = taken >= CONFIG.CAPACITY_PER_SLOT;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'slot' + (full ? ' full' : '');
+    btn.textContent = time;
+    btn.disabled = full;
+    btn.addEventListener('click', () => {
+      state.slot = time;
+      [...slotGrid.children].forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    slotGrid.appendChild(btn);
+  });
+  slotStatus.textContent = 'Los horarios llenos aparecen tachados. Cupo de ' + CONFIG.CAPACITY_PER_SLOT + ' grupos por franja.';
+}
+
+/* ---------- Date pills ---------- */
+const dateRow = document.getElementById('dateRow');
+
+function selectDate(dateValue){
+  state.date = dateValue;
+  state.slot = null;
+  [...dateRow.children].forEach(p => p.classList.toggle('active', p.dataset.date === dateValue));
+  renderSlots();
+}
+
+CONFIG.DATES.forEach(d => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pill';
+  btn.textContent = d.label;
+  btn.dataset.date = d.value;
+  btn.addEventListener('click', () => selectDate(d.value));
+  dateRow.appendChild(btn);
+});
+selectDate(CONFIG.DATES[0].value);
+
+async function loadAvailability(){
+  if (!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.startsWith('PEGAR')) {
+    renderSlots(); // Sin backend todavia: mostramos todo abierto para poder previsualizar.
+    return;
+  }
+  try{
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=availability');
+    const data = await res.json();
+    if (data.ok) state.availability = data.availability;
+  }catch(e){ /* Si falla, seguimos mostrando todo abierto. */ }
+  renderSlots();
+}
+loadAvailability();
+
+/* ---------- Stripe ---------- */
+let stripe, cardElement;
+if (!CONFIG.STRIPE_PUBLISHABLE_KEY.startsWith('PEGAR')) {
+  stripe = Stripe(CONFIG.STRIPE_PUBLISHABLE_KEY);
+  const elements = stripe.elements();
+  cardElement = elements.create('card', {
+    style: { base: { fontFamily: "'Work Sans', sans-serif", fontSize: '16px', color: '#16232f', '::placeholder': { color: 'rgba(22,35,47,0.4)' } } }
+  });
+  cardElement.mount('#card-element');
+  cardElement.on('change', (e) => {
+    document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+  });
+} else {
+  document.getElementById('card-element').innerHTML =
+    '<p style="font-size:13px;color:rgba(22,35,47,0.5);">Conectá la clave pública de Stripe en CONFIG para activar este campo.</p>';
+}
+
+/* ---------- Submit ---------- */
+const form = document.getElementById('rsvpForm');
+const submitBtn = document.getElementById('submitBtn');
+const formError = document.getElementById('formError');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  formError.textContent = '';
+
+  const fullName = document.getElementById('fullName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+
+  if (!fullName || !email || !phone) { formError.textContent = 'Completá nombre, correo y teléfono.'; return; }
+  if (!state.date) { formError.textContent = 'Elegí un día.'; return; }
+  if (!state.slot) { formError.textContent = 'Elegí un horario.'; return; }
+
+  setLoading(true);
+
+  try{
+    if (CONFIG.APPS_SCRIPT_URL.startsWith('PEGAR')) {
+      throw new Error('Backend no conectado todavía (falta APPS_SCRIPT_URL en CONFIG).');
+    }
+
+    // 1) Pedimos al backend un SetupIntent (guardar tarjeta, sin cobrar)
+    const siRes = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'createSetupIntent', fullName, email })
+    });
+    const siData = await siRes.json();
+    if (!siData.ok) throw new Error(siData.error || 'No pudimos preparar el pago de garantía.');
+
+    // 2) Confirmamos la tarjeta directo con Stripe (nunca toca nuestro servidor)
+    const { setupIntent, error } = await stripe.confirmCardSetup(siData.clientSecret, {
+      payment_method: { card: cardElement, billing_details: { name: fullName, email } }
+    });
+    if (error) throw new Error(error.message);
+
+    // 3) Confirmamos la reserva en el backend
+    const resRes = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'confirmReservation',
+        fullName, email, phone,
+        guests: state.guests,
+        date: state.date,
+        time: state.slot,
+        stripeCustomerId: siData.customerId,
+        paymentMethodId: setupIntent.payment_method
+      })
+    });
+    const resData = await resRes.json();
+    if (!resData.ok) throw new Error(resData.error || 'El horario se llenó mientras completabas el formulario. Elegí otro.');
+
+    showConfirmation(resData, { fullName, email, guests: state.guests, date: state.date, time: state.slot });
+
+  }catch(err){
+    formError.textContent = err.message;
+  }finally{
+    setLoading(false);
+  }
+});
+
+function setLoading(isLoading){
+  submitBtn.disabled = isLoading;
+  submitBtn.classList.toggle('loading', isLoading);
+}
+
+function formatDate(iso){
+  const d = CONFIG.DATES.find(x => x.value === iso);
+  return d ? d.label : iso;
+}
+
+function showConfirmation(resData, details){
+  document.getElementById('formScreen').style.display = 'none';
+  document.querySelector('.hero').style.display = 'none';
+  document.getElementById('confirmScreen').style.display = 'block';
+  document.getElementById('confirmCode').textContent = resData.code;
+
+  const summary = document.getElementById('confirmSummary');
+  summary.innerHTML = `
+    <div class="summary-row"><span>Titular</span><span>${details.fullName}</span></div>
+    <div class="summary-row"><span>Personas</span><span>${details.guests}</span></div>
+    <div class="summary-row"><span>Día</span><span>${formatDate(details.date)}</span></div>
+    <div class="summary-row"><span>Hora</span><span>${details.time}</span></div>
+    <div class="summary-row"><span>Correo</span><span>${details.email}</span></div>
+  `;
+
+  const waText = encodeURIComponent(`Hola, soy ${details.fullName}. Confirmé mi reserva en el Hoyo 18 (${resData.code}) para ${details.guests} personas el ${formatDate(details.date)} a las ${details.time}.`);
+  document.getElementById('waLink').href = `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${waText}`;
+
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
