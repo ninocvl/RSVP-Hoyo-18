@@ -48,19 +48,28 @@
   /* ---------- Header ---------- */
   .topbar{
     background:var(--cream);
-    padding:14px 0;
+    padding:16px 0;
     border-bottom:1px solid rgba(22,35,47,0.08);
   }
-  .topbar .wrap{
+  .brand-lockup{
     display:flex;
     align-items:center;
-    justify-content:space-between;
-    gap:16px;
+    justify-content:center;
+    gap:20px;
   }
-  .brand-lockup{display:flex;align-items:center;gap:14px;}
-  .brand-lockup img{height:34px;width:auto;mix-blend-mode:multiply;}
-  .brand-divider{width:1px;height:24px;background:rgba(22,35,47,0.15);}
-  .brand-lockup .solution img{height:19px;}
+  .brand-lockup .brand-half{
+    flex:1 1 0;
+    display:flex;
+    justify-content:center;
+    min-width:0;
+  }
+  .brand-lockup img{max-height:42px;width:auto;max-width:100%;mix-blend-mode:multiply;}
+  .brand-divider{width:1px;height:30px;flex-shrink:0;background:rgba(22,35,47,0.15);}
+  @media (max-width:420px){
+    .brand-lockup{gap:12px;}
+    .brand-lockup img{max-height:32px;}
+    .brand-divider{height:24px;}
+  }
 
   /* ---------- Hero ---------- */
   .hero{
@@ -192,57 +201,81 @@
     font-family:'Fraunces', serif;
   }
 
-  /* Date pills */
-  .pill-row{display:flex;gap:8px;flex-wrap:wrap;}
-  .pill{
-    padding:11px 16px;
-    border-radius:999px;
+  /* Date calendar strip */
+  .day-row{display:flex;gap:8px;}
+  .day-cell{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    padding:12px 4px 10px;
+    border-radius:var(--radius-m);
     border:1.5px solid var(--sand);
     background:var(--cream);
-    font-size:14px;
-    font-weight:600;
-    color:var(--navy-800);
     cursor:pointer;
     transition:all 200ms var(--ease);
   }
-  .pill:hover{border-color:var(--wood);}
-  .pill.active{
-    background:var(--navy-800);
-    border-color:var(--navy-800);
-    color:var(--white);
+  .day-cell:hover{border-color:var(--wood);}
+  .day-cell .day-name{
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:rgba(22,35,47,0.5);
   }
+  .day-cell .day-num{
+    font-family:'Fraunces', serif;
+    font-size:22px;
+    font-weight:600;
+    color:var(--navy-800);
+    line-height:1.1;
+  }
+  .day-cell.active{background:var(--navy-800); border-color:var(--navy-800);}
+  .day-cell.active .day-name{color:rgba(245,240,230,0.75);}
+  .day-cell.active .day-num{color:var(--white);}
 
   /* Slot grid */
   .slot-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(96px, 1fr));
+    grid-template-columns:repeat(2, 1fr);
     gap:8px;
   }
+  @media (min-width:480px){
+    .slot-grid{grid-template-columns:repeat(3, 1fr);}
+  }
   .slot{
-    padding:12px 8px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    padding:14px 8px;
     border-radius:var(--radius-s);
     border:1.5px solid var(--sand);
     background:var(--cream);
-    font-size:14px;
-    font-weight:600;
-    color:var(--navy-800);
     cursor:pointer;
     text-align:center;
     transition:all 200ms var(--ease);
   }
-  .slot:hover:not(.full){border-color:var(--wood);}
-  .slot.active{
-    background:var(--ocean);
-    border-color:var(--ocean);
-    color:var(--white);
+  .slot .slot-time{
+    font-family:'Fraunces', serif;
+    font-size:16px;
+    font-weight:600;
+    color:var(--navy-800);
   }
-  .slot.full{
-    background:var(--sand);
+  .slot .slot-meta{font-size:11px; color:rgba(22,35,47,0.5);}
+  .slot:hover:not(.full){border-color:var(--wood);}
+  .slot.active{background:var(--ocean); border-color:var(--ocean);}
+  .slot.active .slot-time, .slot.active .slot-meta{color:var(--white);}
+  .slot.full{background:var(--sand); cursor:not-allowed;}
+  .slot.full .slot-time{
     color:rgba(22,35,47,0.38);
-    cursor:not-allowed;
     text-decoration:line-through;
     text-decoration-color:rgba(22,35,47,0.25);
   }
+  .slot.full .slot-meta{color:rgba(22,35,47,0.38);}
   .slot-status{
     font-size:12.5px;
     color:rgba(22,35,47,0.55);
@@ -372,20 +405,19 @@
     text-align:center;
   }
   footer .brand-lockup{
-    justify-content:center;
     background:var(--cream);
     border-radius:999px;
-    padding:10px 20px;
+    padding:10px 22px;
     width:fit-content;
     margin:0 auto;
+    gap:16px;
   }
-  footer .brand-lockup img{height:22px;mix-blend-mode:multiply;}
-  footer .brand-lockup .solution img{height:13px;}
+  footer .brand-lockup img{max-height:24px;}
+  footer .brand-divider{height:20px;}
   footer p{color:rgba(245,240,230,0.4); font-size:12px; margin-top:14px;}
 
   @media (max-width:420px){
     .card{padding:22px 18px;}
-    .slot-grid{grid-template-columns:repeat(2, 1fr);}
   }
 </style>
 </head>
@@ -394,9 +426,9 @@
 <header class="topbar">
   <div class="wrap">
     <div class="brand-lockup">
-      <img src="assets/casa-costa-logo.jpg" alt="Casa Costa" />
+      <div class="brand-half"><img src="assets/casa-costa-logo.jpg" alt="Casa Costa" /></div>
       <div class="brand-divider"></div>
-      <div class="solution"><img src="assets/solution-services-logo.jpg" alt="Solution Services DownTown Punta Cana" /></div>
+      <div class="brand-half"><img src="assets/solution-services-logo.jpg" alt="Solution Services DownTown Punta Cana" /></div>
     </div>
   </div>
 </header>
@@ -457,7 +489,7 @@
       <div class="card">
         <div class="field">
           <label class="field-label">Día</label>
-          <div class="pill-row" id="dateRow"></div>
+          <div class="day-row" id="dateRow"></div>
         </div>
         <div class="field" style="margin-bottom:0;">
           <label class="field-label">Hora</label>
@@ -516,9 +548,9 @@
 <footer>
   <div class="wrap">
     <div class="brand-lockup">
-      <img src="assets/casa-costa-logo.jpg" alt="Casa Costa" />
+      <div class="brand-half"><img src="assets/casa-costa-logo.jpg" alt="Casa Costa" /></div>
       <div class="brand-divider"></div>
-      <img src="assets/solution-services-logo.jpg" alt="Solution Services" />
+      <div class="brand-half"><img src="assets/solution-services-logo.jpg" alt="Solution Services" /></div>
     </div>
     <p>Terraza Hoyo 18 · 16 al 19 de julio</p>
   </div>
@@ -527,13 +559,13 @@
 <script src="https://js.stripe.com/v3/"></script>
 <script>
 /* =========================================================
-   CONFIGURACIÓN — completar antes de publicar
+   CONFIGURACION: completar antes de publicar
    ========================================================= */
 const CONFIG = {
   // URL del Web App de Apps Script (Implementar > Nueva implementación)
   APPS_SCRIPT_URL: "PEGAR_URL_DE_APPS_SCRIPT_AQUI",
-  // Clave PÚBLICA de Stripe (pk_live_... o pk_test_...) — esta sí va en el frontend
-  STRIPE_PUBLISHABLE_KEY: "PEGAR_PUBLISHABLE_KEY_DE_STRIPE_AQUI",
+  // Clave PUBLICA de Stripe (pk_live_... o pk_test_...), esta si va en el frontend
+  STRIPE_PUBLISHABLE_KEY: "pk_test_51TrmbP6ozyD5DMebP9F2SQPZkWz8NP3x7x5DemKb7r69OsRJp05xIMEp64opI3eFEoMxxbaDKohhfdE2pyptAIeJ00fwIaQnUe",
   // Número de WhatsApp del equipo del evento, formato internacional sin +
   WHATSAPP_NUMBER: "18090000000",
   // Fechas del evento
@@ -543,9 +575,9 @@ const CONFIG = {
     { value: "2026-07-18", label: "Sáb 18" },
     { value: "2026-07-19", label: "Dom 19" }
   ],
-  // Franjas horarias — un solo lugar para ajustar
-  SLOT_TIMES: ["10:00","11:00","12:00","13:00","14:00","15:00","16:00"],
-  CAPACITY_PER_SLOT: 4
+  // Franjas horarias: cada 2 horas de 8:00 a 18:00
+  SLOT_TIMES: ["08:00","10:00","12:00","14:00","16:00","18:00"],
+  CAPACITY_PER_SLOT: 30
 };
 
 /* =========================================================
@@ -573,12 +605,13 @@ function renderSlots(){
   const counts = (state.availability[state.date]) || {};
   CONFIG.SLOT_TIMES.forEach(time => {
     const taken = counts[time] || 0;
-    const full = taken >= CONFIG.CAPACITY_PER_SLOT;
+    const remaining = Math.max(0, CONFIG.CAPACITY_PER_SLOT - taken);
+    const full = remaining <= 0;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'slot' + (full ? ' full' : '');
-    btn.textContent = time;
     btn.disabled = full;
+    btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-meta">${full ? 'Completo' : remaining + ' lugares'}</span>`;
     btn.addEventListener('click', () => {
       state.slot = time;
       [...slotGrid.children].forEach(s => s.classList.remove('active'));
@@ -586,10 +619,10 @@ function renderSlots(){
     });
     slotGrid.appendChild(btn);
   });
-  slotStatus.textContent = 'Los horarios llenos aparecen tachados. Cupo de ' + CONFIG.CAPACITY_PER_SLOT + ' grupos por franja.';
+  slotStatus.textContent = 'Cupo de ' + CONFIG.CAPACITY_PER_SLOT + ' personas por franja horaria.';
 }
 
-/* ---------- Date pills ---------- */
+/* ---------- Date calendar strip ---------- */
 const dateRow = document.getElementById('dateRow');
 
 function selectDate(dateValue){
@@ -600,10 +633,11 @@ function selectDate(dateValue){
 }
 
 CONFIG.DATES.forEach(d => {
+  const [dayName, dayNum] = d.label.split(' ');
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'pill';
-  btn.textContent = d.label;
+  btn.className = 'day-cell';
+  btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-num">${dayNum}</span>`;
   btn.dataset.date = d.value;
   btn.addEventListener('click', () => selectDate(d.value));
   dateRow.appendChild(btn);
