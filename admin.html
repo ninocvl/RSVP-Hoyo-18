@@ -180,7 +180,7 @@ let reservations = [];
 const loginScreen = document.getElementById('loginScreen');
 const appScreen = document.getElementById('appScreen');
 
-function tryLogin(pw){
+function tryLogin(pw, silent){
   password = pw;
   loadReservations().then(ok => {
     if (ok) {
@@ -188,7 +188,13 @@ function tryLogin(pw){
       loginScreen.style.display = 'none';
       appScreen.style.display = 'block';
     } else {
-      document.getElementById('loginError').textContent = 'Contraseña incorrecta o backend no conectado.';
+      // La contraseña guardada del navegador ya no sirve (por ejemplo, si se
+      // cambio en Apps Script): la borramos para no reintentar sola en cada carga.
+      sessionStorage.removeItem('h18_admin_pw');
+      password = '';
+      if (!silent) {
+        document.getElementById('loginError').textContent = 'Contraseña incorrecta o backend no conectado.';
+      }
     }
   });
 }
@@ -204,7 +210,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   location.reload();
 });
 
-if (password) tryLogin(password);
+if (password) tryLogin(password, true);
 
 /* ---------- Date tabs ---------- */
 const dateTabs = document.getElementById('dateTabs');
@@ -225,11 +231,18 @@ CONFIG.DATES.forEach(d => {
 document.getElementById('searchBox').addEventListener('input', renderList);
 
 /* ---------- Data ---------- */
+let requestSeq = 0;
+
 async function loadReservations(){
   if (!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.startsWith('PEGAR')) return false;
+  const seq = ++requestSeq;
+  const requestedDate = currentDate;
+  document.getElementById('resList').innerHTML = '<div class="empty-state">Cargando reservas...</div>';
   try{
-    const res = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=reservations&date=${currentDate}&password=${encodeURIComponent(password)}`);
+    const res = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=reservations&date=${requestedDate}&password=${encodeURIComponent(password)}`);
     const data = await res.json();
+    // Si mientras esperabamos esta respuesta ya se pidio otra fecha, la descartamos.
+    if (seq !== requestSeq) return false;
     if (!data.ok) return false;
     reservations = data.reservations;
     renderStats();
