@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Hoyo 18 · Admin</title>
+<title>Sky Box Hoyo 18 · Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -68,13 +68,19 @@
   .stat .num{font-family:'Fraunces', serif; font-size:1.6rem; font-weight:600; color:var(--navy-800);}
   .stat .lbl{font-size:11px; color:rgba(22,35,47,0.5); margin-top:2px;}
 
-  .date-tabs{display:flex; gap:8px; margin:16px 0; overflow-x:auto;}
+  .date-tabs{display:flex; gap:8px; margin:16px 0;}
   .date-tab{
-    flex-shrink:0; padding:10px 16px; border-radius:999px; border:1.5px solid var(--sand);
-    background:var(--white); font-size:13.5px; font-weight:600; color:var(--navy-800);
-    cursor:pointer; white-space:nowrap;
+    flex:1; min-width:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    padding:10px 4px 8px; border-radius:var(--radius-m); border:1.5px solid var(--sand);
+    background:var(--white); cursor:pointer;
+    transition:all 200ms var(--ease);
   }
-  .date-tab.active{background:var(--navy-800); border-color:var(--navy-800); color:var(--white);}
+  .date-tab .tab-name{font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:rgba(22,35,47,0.5);}
+  .date-tab .tab-num{font-family:'Fraunces', serif; font-size:19px; font-weight:600; color:var(--navy-800); line-height:1.1;}
+  .date-tab.active{background:var(--navy-800); border-color:var(--navy-800);}
+  .date-tab.active .tab-name{color:rgba(245,240,230,0.75);}
+  .date-tab.active .tab-num{color:var(--white);}
 
   .search-box{
     width:100%; padding:12px 16px; border-radius:999px; border:1.5px solid var(--sand);
@@ -156,14 +162,14 @@
 
 <script>
 const CONFIG = {
-  APPS_SCRIPT_URL: "PEGAR_URL_DE_APPS_SCRIPT_AQUI",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwoDwFNYvc8AFkrnrNPyI1SAtZchMY7NcoS5SVcYsUglYSfaKBAIWbmZqw9zaN36DWO/exec",
   DATES: [
     { value: "2026-07-16", label: "Jue 16" },
     { value: "2026-07-17", label: "Vie 17" },
     { value: "2026-07-18", label: "Sáb 18" },
     { value: "2026-07-19", label: "Dom 19" }
   ],
-  WHATSAPP_NUMBER: "18090000000"
+  WHATSAPP_NUMBER: "18495911666"
 };
 
 let password = sessionStorage.getItem('h18_admin_pw') || '';
@@ -203,9 +209,10 @@ if (password) tryLogin(password);
 /* ---------- Date tabs ---------- */
 const dateTabs = document.getElementById('dateTabs');
 CONFIG.DATES.forEach(d => {
+  const [dayName, dayNum] = d.label.split(' ');
   const btn = document.createElement('button');
   btn.className = 'date-tab' + (d.value === currentDate ? ' active' : '');
-  btn.textContent = d.label;
+  btn.innerHTML = `<span class="tab-name">${dayName}</span><span class="tab-num">${dayNum}</span>`;
   btn.addEventListener('click', () => {
     currentDate = d.value;
     [...dateTabs.children].forEach(t => t.classList.remove('active'));
