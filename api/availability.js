@@ -1,5 +1,5 @@
 import { sql } from '@vercel/postgres';
-import { EVENT_DATES, getHourSlots, addOneHour } from '../lib/hours.js';
+import { EVENT_DATES, getHourSlots, addOneHour, effectiveEndTime } from '../lib/hours.js';
 
 export default async function handler(req, res) {
   try {
@@ -11,8 +11,8 @@ export default async function handler(req, res) {
       SELECT code, label, total_inventory, capacity_per_unit FROM seat_types ORDER BY display_order
     `;
     const { rows: reservations } = await sql`
-      SELECT date::text AS date, start_time::text AS start_time, end_time::text AS end_time,
-             seat_type_code, guests
+      SELECT date::text AS date, start_time::text AS start_time,
+             vacated_time::text AS vacated_time, seat_type_code, guests
       FROM reservations
       WHERE date = ANY(${dates})
     `;
@@ -27,7 +27,8 @@ export default async function handler(req, res) {
         const slotEnd = addOneHour(slot);
         const overlapping = dateReservations.filter(r => {
           const start = r.start_time.slice(0, 5);
-          const end = r.end_time.slice(0, 5);
+          const vacated = r.vacated_time ? r.vacated_time.slice(0, 5) : null;
+          const end = effectiveEndTime(date, vacated);
           return start < slotEnd && end > slot;
         });
 

@@ -1,7 +1,7 @@
 import { db } from '@vercel/postgres';
 import Stripe from 'stripe';
 import { syncToSheet } from '../lib/sheetSync.js';
-import { isValidSlot, addOneHour } from '../lib/hours.js';
+import { isValidSlot, addOneHour, effectiveEndTime } from '../lib/hours.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
@@ -59,11 +59,22 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: false, error: `Ese asiento entra hasta ${capacityPerUnit} personas. Elegí otro tipo de asiento o reducí el grupo.` });
     }
 
-    const { rows: overlapRows } = await client.query(
-      `SELECT seat_type_code, guests FROM reservations
-       WHERE date = $1 AND start_time < $2 AND end_time > $3`,
-      [date, endTime, time]
+    // Ocupacion real: una reserva sigue bloqueando su mesa desde que
+    // empieza hasta que un admin la libera (vacated_time), o hasta el
+    // cierre del dia si nadie la libero todavia. Ya no se libera sola
+    // despues de 1 hora fija.
+    const { rows: dateRows } = await client.query(
+      `SELECT seat_type_code, guests, start_time::text AS start_time,
+              vacated_time::text AS vacated_time
+       FROM reservations WHERE date = $1`,
+      [date]
     );
+    const overlapRows = dateRows.filter(r => {
+      const start = r.start_time.slice(0, 5);
+      const vacated = r.vacated_time ? r.vacated_time.slice(0, 5) : null;
+      const end = effectiveEndTime(date, vacated);
+      return start < endTime && end > time;
+    });
 
     const totalGuestsTaken = overlapRows.reduce((sum, r) => sum + Number(r.guests), 0);
     const seatUnitsTaken = overlapRows.filter(r => r.seat_type_code === seatType).length;

@@ -91,26 +91,30 @@
     background:var(--white); border-radius:var(--radius-m);
     border:1px solid rgba(22,35,47,0.07);
     padding:16px; margin-bottom:10px;
-    display:flex; align-items:center; gap:12px;
+    display:flex; flex-direction:column; gap:12px;
+    transition:opacity 200ms var(--ease);
   }
   .res-card.checked-in{border-left:4px solid var(--ocean);}
-  .res-main{flex:1; min-width:0;}
+  .res-card.vacated{opacity:0.55;}
+  .res-main{min-width:0;}
   .res-name{font-weight:700; font-size:15px; color:var(--navy-800);}
   .res-meta{font-size:13px; color:rgba(22,35,47,0.6); margin-top:3px;}
-  .res-actions{display:flex; gap:8px; flex-shrink:0;}
+  .res-actions{display:flex; gap:8px; align-items:center;}
   .icon-btn{
-    width:42px; height:42px; border-radius:50%; border:1.5px solid var(--sand);
+    width:42px; height:42px; flex-shrink:0; border-radius:50%; border:1.5px solid var(--sand);
     background:var(--cream); display:flex; align-items:center; justify-content:center;
     cursor:pointer; transition:transform 150ms var(--ease), background 150ms var(--ease);
   }
   .icon-btn:active{transform:scale(0.92);}
   .icon-btn.wa{border-color:#25D366; color:#1a8c48;}
-  .checkin-btn{
-    padding:10px 16px; border-radius:999px; border:none;
+  .checkin-btn, .release-btn{
+    flex:1;
+    padding:10px 12px; border-radius:999px; border:none;
     background:var(--sand); color:var(--navy-800); font-size:13px; font-weight:700;
     cursor:pointer; white-space:nowrap; transition:all 200ms var(--ease);
   }
   .checkin-btn.done{background:var(--ocean); color:var(--white);}
+  .release-btn.done{background:var(--wood); color:var(--white);}
 
   .empty-state{
     text-align:center; padding:48px 20px; color:rgba(22,35,47,0.45); font-size:14px;
@@ -163,6 +167,7 @@
 <script>
 const CONFIG = {
   DATES: [
+    { value: "2026-07-15", label: "Mié 15" },
     { value: "2026-07-16", label: "Jue 16" },
     { value: "2026-07-17", label: "Vie 17" },
     { value: "2026-07-18", label: "Sáb 18" },
@@ -271,10 +276,10 @@ function renderList(){
   list.innerHTML = filtered
     .sort((a,b) => a.time.localeCompare(b.time))
     .map(r => `
-      <div class="res-card ${r.checkedIn ? 'checked-in' : ''}">
+      <div class="res-card ${r.checkedIn ? 'checked-in' : ''} ${r.vacatedTime ? 'vacated' : ''}">
         <div class="res-main">
           <div class="res-name">${r.fullName}</div>
-          <div class="res-meta">${r.time} · ${r.seatTypeLabel} · ${r.guests} personas · ${r.code}</div>
+          <div class="res-meta">${r.time} · ${r.seatTypeLabel} · ${r.guests} personas · ${r.code}${r.vacatedTime ? ' · Liberada ' + r.vacatedTime : ''}</div>
         </div>
         <div class="res-actions">
           <a class="icon-btn wa" href="https://wa.me/${String(r.phone||'').replace(/[^0-9]/g,'')}" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -282,6 +287,9 @@ function renderList(){
           </a>
           <button class="checkin-btn ${r.checkedIn ? 'done' : ''}" onclick="toggleCheckin('${r.code}')">
             ${r.checkedIn ? '✓ Llegó' : 'Check-in'}
+          </button>
+          <button class="release-btn ${r.vacatedTime ? 'done' : ''}" onclick="toggleRelease('${r.code}')">
+            ${r.vacatedTime ? '✓ Liberada' : 'Liberar mesa'}
           </button>
         </div>
       </div>
@@ -321,6 +329,39 @@ async function toggleCheckin(code){
   }catch(e){
     r.checkedIn = previousState;
     renderStats();
+    renderList();
+    showToast('Error de conexión');
+  }
+}
+
+async function toggleRelease(code){
+  const r = reservations.find(x => x.code === code);
+  if (!r) return;
+  const previousVacatedTime = r.vacatedTime;
+
+  // Misma actualizacion optimista que el check-in: se ve al toque, se
+  // confirma o se revierte con el servidor despues.
+  r.vacatedTime = previousVacatedTime ? null : '...';
+  renderList();
+
+  try{
+    const res = await fetch('/api/release-table', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, password })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      r.vacatedTime = data.vacatedTime;
+      renderList();
+      showToast(data.vacatedTime ? 'Mesa liberada' : 'Mesa marcada como ocupada de nuevo');
+    } else {
+      r.vacatedTime = previousVacatedTime;
+      renderList();
+      showToast('No se pudo actualizar');
+    }
+  }catch(e){
+    r.vacatedTime = previousVacatedTime;
     renderList();
     showToast('Error de conexión');
   }
