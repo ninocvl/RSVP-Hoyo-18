@@ -1,6 +1,7 @@
 import { db } from '@vercel/postgres';
 import Stripe from 'stripe';
 import { syncToSheet } from '../lib/sheetSync.js';
+import { sendConfirmationEmail } from '../lib/email.js';
 import { isValidSlot, addOneHour, effectiveEndTime } from '../lib/hours.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [date + '|' + time]);
 
     const { rows: seatTypeRows } = await client.query(
-      'SELECT total_inventory, capacity_per_unit FROM seat_types WHERE code = $1',
+      'SELECT label, total_inventory, capacity_per_unit FROM seat_types WHERE code = $1',
       [seatType]
     );
     if (seatTypeRows.length === 0) {
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
       await releaseCard(paymentMethodId);
       return res.status(200).json({ ok: false, error: 'Tipo de asiento no válido.' });
     }
+    const seatTypeLabel = seatTypeRows[0].label;
     const seatInventory = seatTypeRows[0].total_inventory;
     const capacityPerUnit = seatTypeRows[0].capacity_per_unit;
 
@@ -101,6 +103,7 @@ export default async function handler(req, res) {
     res.status(200).json({ ok: true, code });
 
     await syncToSheet({ action: 'reservation', code, fullName, email, phone, guests, seatType, date, time });
+    await sendConfirmationEmail({ to: email, fullName, code, date, time, seatTypeLabel, guests });
   } catch (err) {
     if (client) {
       try { await client.query('ROLLBACK'); } catch (e) { /* ya se habia cerrado la transaccion */ }
