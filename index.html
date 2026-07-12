@@ -614,9 +614,10 @@ const CONFIG = {
   ],
   // Si el backend no responde, usamos esto solo para poder previsualizar la pagina.
   FALLBACK_SEAT_TYPES: [
-    { code: 'sofa', label: 'Sofá', totalInventory: 8 },
-    { code: 'mesa', label: 'Mesa', totalInventory: 10 },
-    { code: 'barra', label: 'Barra', totalInventory: 16 }
+    { code: 'mesa_4p', label: 'Mesa (4 personas)', capacityPerUnit: 4, totalInventory: 11 },
+    { code: 'mesa_2p', label: 'Mesa (2 personas)', capacityPerUnit: 2, totalInventory: 2 },
+    { code: 'mesa_alta_2p', label: 'Mesa alta (2 personas)', capacityPerUnit: 2, totalInventory: 6 },
+    { code: 'sofa_3p', label: 'Sofá con mesa (3 personas)', capacityPerUnit: 3, totalInventory: 3 }
   ]
 };
 
@@ -627,15 +628,23 @@ let state = { guests: 2, date: null, seatType: null, slot: null, availability: {
 
 /* ---------- Guests stepper ---------- */
 const guestCountEl = document.getElementById('guestCount');
+function onGuestsChanged(){
+  guestCountEl.textContent = state.guests;
+  const current = state.seatTypes.find(s => s.code === state.seatType);
+  if (current && current.capacityPerUnit < state.guests) {
+    state.seatType = null;
+    state.slot = null;
+  }
+  renderSeatTypes();
+  renderSlots();
+}
 document.getElementById('guestMinus').addEventListener('click', () => {
   state.guests = Math.max(1, state.guests - 1);
-  guestCountEl.textContent = state.guests;
-  renderSlots();
+  onGuestsChanged();
 });
 document.getElementById('guestPlus').addEventListener('click', () => {
   state.guests = Math.min(12, state.guests + 1);
-  guestCountEl.textContent = state.guests;
-  renderSlots();
+  onGuestsChanged();
 });
 
 /* ---------- Slot grid ---------- */
@@ -683,10 +692,12 @@ const seatRow = document.getElementById('seatRow');
 function renderSeatTypes(){
   seatRow.innerHTML = '';
   state.seatTypes.forEach(st => {
+    const tooSmall = st.capacityPerUnit < state.guests;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'seat-cell' + (state.seatType === st.code ? ' active' : '');
-    btn.innerHTML = `<span class="seat-label">${st.label}</span><span class="seat-meta">${st.totalInventory} en total</span>`;
+    btn.className = 'seat-cell' + (state.seatType === st.code ? ' active' : '') + (tooSmall ? ' full' : '');
+    btn.disabled = tooSmall;
+    btn.innerHTML = `<span class="seat-label">${st.label}</span><span class="seat-meta">${tooSmall ? 'No entra tu grupo' : st.totalInventory + ' en total'}</span>`;
     btn.dataset.seat = st.code;
     btn.addEventListener('click', () => selectSeatType(st.code));
     seatRow.appendChild(btn);

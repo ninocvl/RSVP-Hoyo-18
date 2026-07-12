@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [date + '|' + time]);
 
     const { rows: seatTypeRows } = await client.query(
-      'SELECT total_inventory FROM seat_types WHERE code = $1',
+      'SELECT total_inventory, capacity_per_unit FROM seat_types WHERE code = $1',
       [seatType]
     );
     if (seatTypeRows.length === 0) {
@@ -51,6 +51,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: false, error: 'Tipo de asiento no válido.' });
     }
     const seatInventory = seatTypeRows[0].total_inventory;
+    const capacityPerUnit = seatTypeRows[0].capacity_per_unit;
+
+    if (Number(guests || 0) > capacityPerUnit) {
+      await client.query('ROLLBACK');
+      await releaseCard(paymentMethodId);
+      return res.status(200).json({ ok: false, error: `Ese asiento entra hasta ${capacityPerUnit} personas. Elegí otro tipo de asiento o reducí el grupo.` });
+    }
 
     const { rows: overlapRows } = await client.query(
       `SELECT seat_type_code, guests FROM reservations

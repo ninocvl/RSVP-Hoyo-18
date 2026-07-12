@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     const totalCapacity = Number(process.env.CAPACITY_TOTAL || 80);
 
     const { rows: seatTypes } = await sql`
-      SELECT code, label, total_inventory FROM seat_types ORDER BY display_order
+      SELECT code, label, total_inventory, capacity_per_unit FROM seat_types ORDER BY display_order
     `;
     const { rows: reservations } = await sql`
       SELECT date::text AS date, start_time::text AS start_time, end_time::text AS end_time,
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true,
-      seatTypes: seatTypes.map(st => ({ code: st.code, label: st.label, totalInventory: st.total_inventory })),
+      seatTypes: seatTypes.map(st => ({ code: st.code, label: st.label, totalInventory: st.total_inventory, capacityPerUnit: st.capacity_per_unit })),
       availability
     });
   } catch (err) {
