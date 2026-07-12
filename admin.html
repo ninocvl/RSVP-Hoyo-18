@@ -162,7 +162,6 @@
 
 <script>
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwoDwFNYvc8AFkrnrNPyI1SAtZchMY7NcoS5SVcYsUglYSfaKBAIWbmZqw9zaN36DWO/exec",
   DATES: [
     { value: "2026-07-16", label: "Jue 16" },
     { value: "2026-07-17", label: "Vie 17" },
@@ -234,12 +233,11 @@ document.getElementById('searchBox').addEventListener('input', renderList);
 let requestSeq = 0;
 
 async function loadReservations(){
-  if (!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.startsWith('PEGAR')) return false;
   const seq = ++requestSeq;
   const requestedDate = currentDate;
   document.getElementById('resList').innerHTML = '<div class="empty-state">Cargando reservas...</div>';
   try{
-    const res = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=reservations&date=${requestedDate}&password=${encodeURIComponent(password)}`);
+    const res = await fetch(`/api/reservations?date=${requestedDate}&password=${encodeURIComponent(password)}`);
     const data = await res.json();
     // Si mientras esperabamos esta respuesta ya se pidio otra fecha, la descartamos.
     if (seq !== requestSeq) return false;
@@ -276,7 +274,7 @@ function renderList(){
       <div class="res-card ${r.checkedIn ? 'checked-in' : ''}">
         <div class="res-main">
           <div class="res-name">${r.fullName}</div>
-          <div class="res-meta">${r.time} · ${r.guests} personas · ${r.code}</div>
+          <div class="res-meta">${r.time} · ${r.seatTypeLabel} · ${r.guests} personas · ${r.code}</div>
         </div>
         <div class="res-actions">
           <a class="icon-btn wa" href="https://wa.me/${String(r.phone||'').replace(/[^0-9]/g,'')}" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -303,9 +301,10 @@ async function toggleCheckin(code){
   renderList();
 
   try{
-    const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+    const res = await fetch('/api/checkin', {
       method: 'POST',
-      body: JSON.stringify({ action: 'checkin', code, password })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, password })
     });
     const data = await res.json();
     if (data.ok) {

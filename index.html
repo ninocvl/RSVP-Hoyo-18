@@ -242,6 +242,36 @@
   .day-cell.active .day-name{color:rgba(245,240,230,0.75);}
   .day-cell.active .day-num{color:var(--white);}
 
+  /* Seat type selector */
+  .seat-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .seat-cell{
+    flex:1;
+    min-width:96px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    padding:14px 8px;
+    border-radius:var(--radius-m);
+    border:1.5px solid var(--sand);
+    background:var(--cream);
+    cursor:pointer;
+    text-align:center;
+    transition:all 200ms var(--ease);
+  }
+  .seat-cell:hover:not(.full){border-color:var(--wood);}
+  .seat-cell .seat-label{font-family:'Fraunces', serif; font-size:16px; font-weight:600; color:var(--navy-800);}
+  .seat-cell .seat-meta{font-size:11px; color:rgba(22,35,47,0.5);}
+  .seat-cell.active{background:var(--navy-800); border-color:var(--navy-800);}
+  .seat-cell.active .seat-label, .seat-cell.active .seat-meta{color:var(--white);}
+  .seat-cell.full{background:var(--sand); cursor:not-allowed;}
+  .seat-cell.full .seat-label{
+    color:rgba(22,35,47,0.38);
+    text-decoration:line-through;
+    text-decoration-color:rgba(22,35,47,0.25);
+  }
+  .seat-cell.full .seat-meta{color:rgba(22,35,47,0.38);}
+
   /* Slot grid */
   .slot-grid{
     display:grid;
@@ -496,6 +526,10 @@
           <label class="field-label">Día</label>
           <div class="day-row" id="dateRow"></div>
         </div>
+        <div class="field">
+          <label class="field-label">¿Dónde te gustaría sentarte?</label>
+          <div class="seat-row" id="seatRow"></div>
+        </div>
         <div class="field" style="margin-bottom:0;">
           <label class="field-label">Hora</label>
           <div class="slot-grid" id="slotGrid"></div>
@@ -567,38 +601,41 @@
    CONFIGURACION: completar antes de publicar
    ========================================================= */
 const CONFIG = {
-  // URL del Web App de Apps Script (Implementar > Nueva implementación)
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwoDwFNYvc8AFkrnrNPyI1SAtZchMY7NcoS5SVcYsUglYSfaKBAIWbmZqw9zaN36DWO/exec",
   // Clave PUBLICA de Stripe (pk_live_... o pk_test_...), esta si va en el frontend
   STRIPE_PUBLISHABLE_KEY: "pk_test_51TrmbP6ozyD5DMebP9F2SQPZkWz8NP3x7x5DemKb7r69OsRJp05xIMEp64opI3eFEoMxxbaDKohhfdE2pyptAIeJ00fwIaQnUe",
   // Número de WhatsApp del equipo del evento, formato internacional sin +
   WHATSAPP_NUMBER: "18495911666",
-  // Fechas del evento
+  // Fechas del evento (deben coincidir con EVENT_DATES en lib/hours.js)
   DATES: [
     { value: "2026-07-16", label: "Jue 16" },
     { value: "2026-07-17", label: "Vie 17" },
     { value: "2026-07-18", label: "Sáb 18" },
     { value: "2026-07-19", label: "Dom 19" }
   ],
-  // Franjas horarias: cada 2 horas de 8:00 a 18:00
-  SLOT_TIMES: ["08:00","10:00","12:00","14:00","16:00","18:00"],
-  CAPACITY_PER_SLOT: 30
+  // Si el backend no responde, usamos esto solo para poder previsualizar la pagina.
+  FALLBACK_SEAT_TYPES: [
+    { code: 'sofa', label: 'Sofá', totalInventory: 8 },
+    { code: 'mesa', label: 'Mesa', totalInventory: 10 },
+    { code: 'barra', label: 'Barra', totalInventory: 16 }
+  ]
 };
 
 /* =========================================================
    Estado
    ========================================================= */
-let state = { guests: 2, date: null, slot: null, availability: {} };
+let state = { guests: 2, date: null, seatType: null, slot: null, availability: {}, seatTypes: [] };
 
 /* ---------- Guests stepper ---------- */
 const guestCountEl = document.getElementById('guestCount');
 document.getElementById('guestMinus').addEventListener('click', () => {
   state.guests = Math.max(1, state.guests - 1);
   guestCountEl.textContent = state.guests;
+  renderSlots();
 });
 document.getElementById('guestPlus').addEventListener('click', () => {
   state.guests = Math.min(12, state.guests + 1);
   guestCountEl.textContent = state.guests;
+  renderSlots();
 });
 
 /* ---------- Slot grid ---------- */
@@ -607,16 +644,27 @@ const slotStatus = document.getElementById('slotStatus');
 
 function renderSlots(){
   slotGrid.innerHTML = '';
-  const counts = (state.availability[state.date]) || {};
-  CONFIG.SLOT_TIMES.forEach(time => {
-    const taken = counts[time] || 0;
-    const remaining = Math.max(0, CONFIG.CAPACITY_PER_SLOT - taken);
-    const full = remaining <= 0;
+  const dayAvailability = state.availability[state.date] || {};
+  const times = Object.keys(dayAvailability).sort();
+
+  if (!state.seatType) {
+    slotStatus.textContent = 'Elegí un tipo de asiento para ver los horarios.';
+    return;
+  }
+  if (times.length === 0) {
+    slotStatus.textContent = 'No hay horarios disponibles para este día.';
+    return;
+  }
+
+  times.forEach(time => {
+    const info = dayAvailability[time];
+    const seatRemaining = info.seats[state.seatType] ?? 0;
+    const full = seatRemaining <= 0 || info.totalGuestsRemaining < state.guests;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'slot' + (full ? ' full' : '');
+    btn.className = 'slot' + (full ? ' full' : '') + (state.slot === time ? ' active' : '');
     btn.disabled = full;
-    btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-meta">${full ? 'Completo' : remaining + ' lugares'}</span>`;
+    btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-meta">${full ? 'Completo' : seatRemaining + ' libres'}</span>`;
     btn.addEventListener('click', () => {
       state.slot = time;
       [...slotGrid.children].forEach(s => s.classList.remove('active'));
@@ -624,7 +672,32 @@ function renderSlots(){
     });
     slotGrid.appendChild(btn);
   });
-  slotStatus.textContent = 'Cupo de ' + CONFIG.CAPACITY_PER_SLOT + ' personas por franja horaria.';
+
+  const seatLabel = (state.seatTypes.find(s => s.code === state.seatType) || {}).label || '';
+  slotStatus.textContent = 'Disponibilidad de ' + seatLabel + ' por hora, según cuántos son.';
+}
+
+/* ---------- Seat type selector ---------- */
+const seatRow = document.getElementById('seatRow');
+
+function renderSeatTypes(){
+  seatRow.innerHTML = '';
+  state.seatTypes.forEach(st => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'seat-cell' + (state.seatType === st.code ? ' active' : '');
+    btn.innerHTML = `<span class="seat-label">${st.label}</span><span class="seat-meta">${st.totalInventory} en total</span>`;
+    btn.dataset.seat = st.code;
+    btn.addEventListener('click', () => selectSeatType(st.code));
+    seatRow.appendChild(btn);
+  });
+}
+
+function selectSeatType(code){
+  state.seatType = code;
+  state.slot = null;
+  [...seatRow.children].forEach(s => s.classList.toggle('active', s.dataset.seat === code));
+  renderSlots();
 }
 
 /* ---------- Date calendar strip ---------- */
@@ -647,19 +720,22 @@ CONFIG.DATES.forEach(d => {
   btn.addEventListener('click', () => selectDate(d.value));
   dateRow.appendChild(btn);
 });
-selectDate(CONFIG.DATES[0].value);
+state.date = CONFIG.DATES[0].value;
+[...dateRow.children][0].classList.add('active');
 
 async function loadAvailability(){
-  if (!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.startsWith('PEGAR')) {
-    renderSlots(); // Sin backend todavia: mostramos todo abierto para poder previsualizar.
-    return;
-  }
   try{
-    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=availability');
+    const res = await fetch('/api/availability');
     const data = await res.json();
-    if (data.ok) state.availability = data.availability;
-  }catch(e){ /* Si falla, seguimos mostrando todo abierto. */ }
-  renderSlots();
+    if (data.ok) {
+      state.availability = data.availability;
+      state.seatTypes = data.seatTypes;
+    }
+  }catch(e){ /* Si falla, mostramos los tipos de asiento de referencia. */ }
+
+  if (state.seatTypes.length === 0) state.seatTypes = CONFIG.FALLBACK_SEAT_TYPES;
+  renderSeatTypes();
+  selectSeatType(state.seatTypes[0].code);
 }
 loadAvailability();
 
@@ -695,19 +771,17 @@ form.addEventListener('submit', async (e) => {
 
   if (!fullName || !email || !phone) { formError.textContent = 'Completá nombre, correo y teléfono.'; return; }
   if (!state.date) { formError.textContent = 'Elegí un día.'; return; }
+  if (!state.seatType) { formError.textContent = 'Elegí dónde te gustaría sentarte.'; return; }
   if (!state.slot) { formError.textContent = 'Elegí un horario.'; return; }
 
   setLoading(true);
 
   try{
-    if (CONFIG.APPS_SCRIPT_URL.startsWith('PEGAR')) {
-      throw new Error('Backend no conectado todavía (falta APPS_SCRIPT_URL en CONFIG).');
-    }
-
     // 1) Pedimos al backend un SetupIntent (guardar tarjeta, sin cobrar)
-    const siRes = await fetch(CONFIG.APPS_SCRIPT_URL, {
+    const siRes = await fetch('/api/create-setup-intent', {
       method: 'POST',
-      body: JSON.stringify({ action: 'createSetupIntent', fullName, email })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName, email })
     });
     const siData = await siRes.json();
     if (!siData.ok) throw new Error(siData.error || 'No pudimos preparar el pago de garantía.');
@@ -719,14 +793,15 @@ form.addEventListener('submit', async (e) => {
     if (error) throw new Error(error.message);
 
     // 3) Confirmamos la reserva en el backend
-    const resRes = await fetch(CONFIG.APPS_SCRIPT_URL, {
+    const resRes = await fetch('/api/confirm-reservation', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'confirmReservation',
         fullName, email, phone,
         guests: state.guests,
         date: state.date,
         time: state.slot,
+        seatType: state.seatType,
         stripeCustomerId: siData.customerId,
         paymentMethodId: setupIntent.payment_method
       })
@@ -734,7 +809,8 @@ form.addEventListener('submit', async (e) => {
     const resData = await resRes.json();
     if (!resData.ok) throw new Error(resData.error || 'El horario se llenó mientras completabas el formulario. Elegí otro.');
 
-    showConfirmation(resData, { fullName, email, guests: state.guests, date: state.date, time: state.slot });
+    const seatLabel = (state.seatTypes.find(s => s.code === state.seatType) || {}).label || '';
+    showConfirmation(resData, { fullName, email, guests: state.guests, date: state.date, time: state.slot, seatLabel });
 
   }catch(err){
     formError.textContent = err.message;
@@ -763,6 +839,7 @@ function showConfirmation(resData, details){
   summary.innerHTML = `
     <div class="summary-row"><span>Titular</span><span>${details.fullName}</span></div>
     <div class="summary-row"><span>Personas</span><span>${details.guests}</span></div>
+    <div class="summary-row"><span>Asiento</span><span>${details.seatLabel}</span></div>
     <div class="summary-row"><span>Día</span><span>${formatDate(details.date)}</span></div>
     <div class="summary-row"><span>Hora</span><span>${details.time}</span></div>
     <div class="summary-row"><span>Correo</span><span>${details.email}</span></div>
