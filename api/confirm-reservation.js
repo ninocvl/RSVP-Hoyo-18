@@ -29,9 +29,10 @@ export default async function handler(req, res) {
   }
 
   const endTime = addOneHour(time);
-  const client = await db.connect();
+  let client;
 
   try {
+    client = await db.connect();
     await client.query('BEGIN');
 
     // Bloqueo por fecha+hora (no por tipo de asiento): el cupo total de 80
@@ -83,9 +84,13 @@ export default async function handler(req, res) {
 
     await syncToSheet({ action: 'reservation', code, fullName, email, phone, guests, seatType, date, time });
   } catch (err) {
-    try { await client.query('ROLLBACK'); } catch (e) { /* ya se habia cerrado la transaccion */ }
-    res.status(200).json({ ok: false, error: err.message });
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (e) { /* ya se habia cerrado la transaccion */ }
+    }
+    console.error('confirm-reservation fallo:', err);
+    await releaseCard(paymentMethodId);
+    res.status(200).json({ ok: false, error: 'No pudimos confirmar la reserva. Probá de nuevo en un momento.' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 }
