@@ -98,10 +98,13 @@ export default async function handler(req, res) {
     );
 
     await client.query('COMMIT');
-    res.status(200).json({ ok: true, code, units: unitsNeeded });
 
+    // Se manda antes de responder: en Vercel, el proceso puede congelarse
+    // apenas se envia la respuesta, cortando cualquier await pendiente.
     await syncToSheet({ action: 'reservation', code, fullName, email, phone, guests, seatType, date, time });
     await sendConfirmationEmail({ to: email, fullName, code, date, time, seatTypeLabel, guests });
+
+    res.status(200).json({ ok: true, code, units: unitsNeeded });
   } catch (err) {
     if (client) {
       try { await client.query('ROLLBACK'); } catch (e) { /* ya se habia cerrado la transaccion */ }

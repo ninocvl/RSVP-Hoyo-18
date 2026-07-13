@@ -25,12 +25,14 @@ export default async function handler(req, res) {
       : await sql`UPDATE reservations SET cancelled_at = NULL WHERE code = ${code} RETURNING cancelled_at::text AS cancelled_at`;
     const newCancelledAt = updated[0].cancelled_at;
 
-    res.status(200).json({ ok: true, cancelledAt: newCancelledAt });
-
+    // Se manda antes de responder: en Vercel, el proceso puede congelarse
+    // apenas se envia la respuesta, cortando cualquier await pendiente.
     if (isCancelling) {
       await releaseCard(rows[0].stripe_payment_method_id);
     }
     await syncToSheet({ action: 'cancel', code, cancelledAt: newCancelledAt });
+
+    res.status(200).json({ ok: true, cancelledAt: newCancelledAt });
   } catch (err) {
     res.status(200).json({ ok: false, error: err.message });
   }

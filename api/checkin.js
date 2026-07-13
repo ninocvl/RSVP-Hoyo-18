@@ -25,9 +25,12 @@ export default async function handler(req, res) {
     }
     const newState = !rows[0].checked_in;
     await sql`UPDATE reservations SET checked_in = ${newState} WHERE code = ${code}`;
-    res.status(200).json({ ok: true, checkedIn: newState });
 
+    // Se manda antes de responder: en Vercel, el proceso puede congelarse
+    // apenas se envia la respuesta, cortando cualquier await pendiente.
     await syncToSheet({ action: 'checkin', code, checkedIn: newState });
+
+    res.status(200).json({ ok: true, checkedIn: newState });
   } catch (err) {
     res.status(200).json({ ok: false, error: err.message });
   }

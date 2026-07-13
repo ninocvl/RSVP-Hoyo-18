@@ -26,9 +26,12 @@ export default async function handler(req, res) {
     const newVacatedTime = isReleasing ? nowLocalTime() : null;
 
     await sql`UPDATE reservations SET vacated_time = ${newVacatedTime} WHERE code = ${code}`;
-    res.status(200).json({ ok: true, vacatedTime: newVacatedTime });
 
+    // Se manda antes de responder: en Vercel, el proceso puede congelarse
+    // apenas se envia la respuesta, cortando cualquier await pendiente.
     await syncToSheet({ action: 'releaseTable', code, vacatedTime: newVacatedTime });
+
+    res.status(200).json({ ok: true, vacatedTime: newVacatedTime });
   } catch (err) {
     res.status(200).json({ ok: false, error: err.message });
   }
