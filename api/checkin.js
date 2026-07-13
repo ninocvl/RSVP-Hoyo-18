@@ -1,5 +1,6 @@
 import { sql } from '@vercel/postgres';
 import { syncToSheet } from '../lib/sheetSync.js';
+import { nowLocalDate } from '../lib/hours.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -12,9 +13,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { rows } = await sql`SELECT checked_in FROM reservations WHERE code = ${code}`;
+    const { rows } = await sql`SELECT checked_in, cancelled_at, date::text AS date FROM reservations WHERE code = ${code}`;
     if (rows.length === 0) {
       return res.status(200).json({ ok: false, error: 'Código no encontrado.' });
+    }
+    if (rows[0].cancelled_at) {
+      return res.status(200).json({ ok: false, error: 'Esta reserva fue cancelada.' });
+    }
+    if (rows[0].date !== nowLocalDate()) {
+      return res.status(200).json({ ok: false, error: 'Solo se puede hacer check-in el día de la reserva.' });
     }
     const newState = !rows[0].checked_in;
     await sql`UPDATE reservations SET checked_in = ${newState} WHERE code = ${code}`;

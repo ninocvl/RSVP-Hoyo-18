@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       SELECT date::text AS date, start_time::text AS start_time,
              vacated_time::text AS vacated_time, seat_type_code, guests, units
       FROM reservations
-      WHERE date = ANY(${dates})
+      WHERE date = ANY(${dates}) AND cancelled_at IS NULL
     `;
 
     const availability = {};

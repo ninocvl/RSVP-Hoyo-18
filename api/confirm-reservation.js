@@ -1,19 +1,11 @@
 import { db } from '@vercel/postgres';
-import Stripe from 'stripe';
 import { syncToSheet } from '../lib/sheetSync.js';
 import { sendConfirmationEmail } from '../lib/email.js';
 import { isValidSlot, addOneHour, effectiveEndTime } from '../lib/hours.js';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+import { releaseCard } from '../lib/stripeCard.js';
 
 function generateCode() {
   return 'H18-' + Math.floor(1000 + Math.random() * 9000);
-}
-
-async function releaseCard(paymentMethodId) {
-  if (process.env.STRIPE_SECRET_KEY && paymentMethodId) {
-    try { await stripe.paymentMethods.detach(paymentMethodId); } catch (e) { /* no bloquear la respuesta por esto */ }
-  }
 }
 
 export default async function handler(req, res) {
@@ -71,7 +63,7 @@ export default async function handler(req, res) {
     const { rows: dateRows } = await client.query(
       `SELECT seat_type_code, guests, units, start_time::text AS start_time,
               vacated_time::text AS vacated_time
-       FROM reservations WHERE date = $1`,
+       FROM reservations WHERE date = $1 AND cancelled_at IS NULL`,
       [date]
     );
     const overlapRows = dateRows.filter(r => {

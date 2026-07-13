@@ -99,7 +99,7 @@
   .res-main{min-width:0;}
   .res-name{font-weight:700; font-size:15px; color:var(--navy-800);}
   .res-meta{font-size:13px; color:rgba(22,35,47,0.6); margin-top:3px;}
-  .res-actions{display:flex; gap:8px; align-items:center;}
+  .res-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
   .icon-btn{
     width:42px; height:42px; flex-shrink:0; border-radius:50%; border:1.5px solid var(--sand);
     background:var(--cream); display:flex; align-items:center; justify-content:center;
@@ -107,7 +107,7 @@
   }
   .icon-btn:active{transform:scale(0.92);}
   .icon-btn.wa{border-color:#25D366; color:#1a8c48;}
-  .checkin-btn, .release-btn{
+  .checkin-btn, .release-btn, .cancel-btn{
     flex:1;
     padding:10px 12px; border-radius:999px; border:none;
     background:var(--sand); color:var(--navy-800); font-size:13px; font-weight:700;
@@ -115,6 +115,11 @@
   }
   .checkin-btn.done{background:var(--ocean); color:var(--white);}
   .release-btn.done{background:var(--wood); color:var(--white);}
+  .cancel-btn{color:#c0392b;}
+  .cancel-btn.done{background:#c0392b; color:var(--white);}
+  .checkin-btn:disabled, .release-btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .res-card.cancelled{opacity:0.5;}
+  .res-card.cancelled .res-name{text-decoration:line-through;}
 
   .empty-state{
     text-align:center; padding:48px 20px; color:rgba(22,35,47,0.45); font-size:14px;
@@ -258,15 +263,27 @@ async function loadReservations(){
 }
 
 function renderStats(){
-  document.getElementById('statTotal').textContent = reservations.length;
-  document.getElementById('statGuests').textContent = reservations.reduce((sum, r) => sum + Number(r.guests), 0);
-  document.getElementById('statCheckedIn').textContent = reservations.filter(r => r.checkedIn).length;
+  const active = reservations.filter(r => !r.cancelledAt);
+  document.getElementById('statTotal').textContent = active.length;
+  document.getElementById('statGuests').textContent = active.reduce((sum, r) => sum + Number(r.guests), 0);
+  document.getElementById('statCheckedIn').textContent = active.filter(r => r.checkedIn).length;
+}
+
+function todayInSantoDomingo(){
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santo_Domingo', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date());
+  const y = parts.find(p => p.type === 'year').value;
+  const m = parts.find(p => p.type === 'month').value;
+  const d = parts.find(p => p.type === 'day').value;
+  return `${y}-${m}-${d}`;
 }
 
 function renderList(){
   const q = document.getElementById('searchBox').value.trim().toLowerCase();
   const list = document.getElementById('resList');
   const filtered = reservations.filter(r => r.fullName.toLowerCase().includes(q));
+  const todayStr = todayInSantoDomingo(); // "hoy" real, no la pestaña que se esta viendo
 
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty-state">No hay reservas para este filtro todavía.</div>';
@@ -275,25 +292,34 @@ function renderList(){
 
   list.innerHTML = filtered
     .sort((a,b) => a.time.localeCompare(b.time))
-    .map(r => `
-      <div class="res-card ${r.checkedIn ? 'checked-in' : ''} ${r.vacatedTime ? 'vacated' : ''}">
+    .map(r => {
+      const isCancelled = !!r.cancelledAt;
+      const isToday = r.date === todayStr;
+      const checkinDisabled = isCancelled || !isToday;
+      const checkinTitle = isCancelled ? 'Reserva cancelada' : (!isToday ? 'Solo se puede hacer check-in el día de la reserva' : '');
+      return `
+      <div class="res-card ${r.checkedIn ? 'checked-in' : ''} ${r.vacatedTime ? 'vacated' : ''} ${isCancelled ? 'cancelled' : ''}">
         <div class="res-main">
           <div class="res-name">${r.fullName}</div>
-          <div class="res-meta">${r.time} · ${r.seatTypeLabel}${r.units > 1 ? ' (x' + r.units + ' juntas)' : ''} · ${r.guests} personas · ${r.code}${r.vacatedTime ? ' · Liberada ' + r.vacatedTime : ''}</div>
+          <div class="res-meta">${r.time} · ${r.seatTypeLabel}${r.units > 1 ? ' (x' + r.units + ' juntas)' : ''} · ${r.guests} personas · ${r.code}${r.vacatedTime ? ' · Liberada ' + r.vacatedTime : ''}${isCancelled ? ' · Cancelada' : ''}</div>
         </div>
         <div class="res-actions">
           <a class="icon-btn wa" href="https://wa.me/${String(r.phone||'').replace(/[^0-9]/g,'')}" target="_blank" rel="noopener" aria-label="WhatsApp">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.64 0-3.16-.47-4.45-1.28l-.32-.19-3.11.82.83-3.04-.21-.31A7.94 7.94 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
           </a>
-          <button class="checkin-btn ${r.checkedIn ? 'done' : ''}" onclick="toggleCheckin('${r.code}')">
+          <button class="checkin-btn ${r.checkedIn ? 'done' : ''}" onclick="toggleCheckin('${r.code}')" ${checkinDisabled ? 'disabled' : ''} ${checkinTitle ? `title="${checkinTitle}"` : ''}>
             ${r.checkedIn ? '✓ Llegó' : 'Check-in'}
           </button>
-          <button class="release-btn ${r.vacatedTime ? 'done' : ''}" onclick="toggleRelease('${r.code}')">
+          <button class="release-btn ${r.vacatedTime ? 'done' : ''}" onclick="toggleRelease('${r.code}')" ${isCancelled ? 'disabled' : ''}>
             ${r.vacatedTime ? '✓ Liberada' : 'Liberar mesa'}
+          </button>
+          <button class="cancel-btn ${isCancelled ? 'done' : ''}" onclick="toggleCancel('${r.code}')">
+            ${isCancelled ? '↺ Cancelada' : 'Cancelar'}
           </button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 async function toggleCheckin(code){
@@ -362,6 +388,48 @@ async function toggleRelease(code){
     }
   }catch(e){
     r.vacatedTime = previousVacatedTime;
+    renderList();
+    showToast('Error de conexión');
+  }
+}
+
+async function toggleCancel(code){
+  const r = reservations.find(x => x.code === code);
+  if (!r) return;
+  const previousCancelledAt = r.cancelledAt;
+  const wasCancelled = !!previousCancelledAt;
+
+  if (!wasCancelled) {
+    const extra = r.checkedIn ? ' Esta reserva ya hizo check-in.' : '';
+    if (!window.confirm(`¿Cancelar la reserva de ${r.fullName}? Esto libera el cupo para otra persona.${extra}`)) return;
+  }
+
+  // Misma actualizacion optimista que el check-in y liberar mesa.
+  r.cancelledAt = wasCancelled ? null : new Date().toISOString();
+  renderStats();
+  renderList();
+
+  try{
+    const res = await fetch('/api/cancel-reservation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, password })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      r.cancelledAt = data.cancelledAt;
+      renderStats();
+      renderList();
+      showToast(data.cancelledAt ? 'Reserva cancelada' : 'Cancelación revertida');
+    } else {
+      r.cancelledAt = previousCancelledAt;
+      renderStats();
+      renderList();
+      showToast('No se pudo actualizar');
+    }
+  }catch(e){
+    r.cancelledAt = previousCancelledAt;
+    renderStats();
     renderList();
     showToast('Error de conexión');
   }

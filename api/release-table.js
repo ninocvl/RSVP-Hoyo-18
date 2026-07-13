@@ -13,9 +13,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { rows } = await sql`SELECT vacated_time FROM reservations WHERE code = ${code}`;
+    const { rows } = await sql`SELECT vacated_time, cancelled_at FROM reservations WHERE code = ${code}`;
     if (rows.length === 0) {
       return res.status(200).json({ ok: false, error: 'Código no encontrado.' });
+    }
+    if (rows[0].cancelled_at) {
+      return res.status(200).json({ ok: false, error: 'Esta reserva fue cancelada.' });
     }
 
     // Toggle: si ya estaba liberada, "des-liberarla" (por si se toco por error).
