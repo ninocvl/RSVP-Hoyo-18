@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const { code, password } = req.body;
+  const { code, password, override } = req.body;
   if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
     return res.status(200).json({ ok: false, error: 'Contraseña incorrecta.' });
   }
@@ -20,7 +20,10 @@ export default async function handler(req, res) {
     if (rows[0].cancelled_at) {
       return res.status(200).json({ ok: false, error: 'Esta reserva fue cancelada.' });
     }
-    if (rows[0].date !== nowLocalDate()) {
+    // El admin puede forzar el check-in de un dia distinto a proposito
+    // (override, con confirmacion en el panel) para pruebas o casos
+    // puntuales, pero el chequeo sigue siendo la regla por defecto.
+    if (!override && rows[0].date !== nowLocalDate()) {
       return res.status(200).json({ ok: false, error: 'Solo se puede hacer check-in el día de la reserva.' });
     }
     const newState = !rows[0].checked_in;

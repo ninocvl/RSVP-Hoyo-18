@@ -118,6 +118,7 @@
   .cancel-btn{color:#c0392b;}
   .cancel-btn.done{background:#c0392b; color:var(--white);}
   .checkin-btn:disabled, .release-btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .checkin-btn.needs-override{background:transparent; border:1.5px dashed #b8860b; color:#8a6a10;}
   .res-card.cancelled{opacity:0.5;}
   .res-card.cancelled .res-name{text-decoration:line-through;}
 
@@ -295,8 +296,7 @@ function renderList(){
     .map(r => {
       const isCancelled = !!r.cancelledAt;
       const isToday = r.date === todayStr;
-      const checkinDisabled = isCancelled || !isToday;
-      const checkinTitle = isCancelled ? 'Reserva cancelada' : (!isToday ? 'Solo se puede hacer check-in el día de la reserva' : '');
+      const checkinTitle = isCancelled ? 'Reserva cancelada' : (!isToday ? 'Esta reserva no es de hoy — se va a pedir confirmación' : '');
       return `
       <div class="res-card ${r.checkedIn ? 'checked-in' : ''} ${r.vacatedTime ? 'vacated' : ''} ${isCancelled ? 'cancelled' : ''}">
         <div class="res-main">
@@ -307,7 +307,7 @@ function renderList(){
           <a class="icon-btn wa" href="https://wa.me/${String(r.phone||'').replace(/[^0-9]/g,'')}" target="_blank" rel="noopener" aria-label="WhatsApp">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.64 0-3.16-.47-4.45-1.28l-.32-.19-3.11.82.83-3.04-.21-.31A7.94 7.94 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
           </a>
-          <button class="checkin-btn ${r.checkedIn ? 'done' : ''}" onclick="toggleCheckin('${r.code}')" ${checkinDisabled ? 'disabled' : ''} ${checkinTitle ? `title="${checkinTitle}"` : ''}>
+          <button class="checkin-btn ${r.checkedIn ? 'done' : ''} ${!isCancelled && !isToday ? 'needs-override' : ''}" onclick="toggleCheckin('${r.code}')" ${isCancelled ? 'disabled' : ''} ${checkinTitle ? `title="${checkinTitle}"` : ''}>
             ${r.checkedIn ? '✓ Llegó' : 'Check-in'}
           </button>
           <button class="release-btn ${r.vacatedTime ? 'done' : ''}" onclick="toggleRelease('${r.code}')" ${isCancelled ? 'disabled' : ''}>
@@ -327,6 +327,15 @@ async function toggleCheckin(code){
   if (!r) return;
   const previousState = r.checkedIn;
 
+  // Si la reserva no es de hoy, el check-in requiere confirmacion explicita
+  // (override) — protege contra toques accidentales el dia del evento sin
+  // bloquear pruebas o casos puntuales.
+  const isToday = r.date === todayInSantoDomingo();
+  const override = !isToday;
+  if (override) {
+    if (!window.confirm(`Esta reserva es para el ${r.date}, no hoy. ¿Hacer check-in de todas formas?`)) return;
+  }
+
   // Actualizacion optimista: se ve al toque en pantalla: se confirma (o se
   // revierte) con el servidor despues, que en Apps Script siempre tarda unos
   // segundos en responder sin importar que tan liviano sea el codigo.
@@ -338,7 +347,7 @@ async function toggleCheckin(code){
     const res = await fetch('/api/checkin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, password })
+      body: JSON.stringify({ code, password, override })
     });
     const data = await res.json();
     if (data.ok) {
