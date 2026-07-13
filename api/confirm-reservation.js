@@ -2,7 +2,6 @@ import { db } from '@vercel/postgres';
 import { syncToSheet } from '../lib/sheetSync.js';
 import { sendConfirmationEmail } from '../lib/email.js';
 import { isValidSlot, addOneHour, effectiveEndTime } from '../lib/hours.js';
-import { releaseCard } from '../lib/stripeCard.js';
 
 function generateCode() {
   return 'H18-' + Math.floor(1000 + Math.random() * 9000);
@@ -13,11 +12,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const { fullName, email, phone, guests, date, time, seatType, stripeCustomerId, paymentMethodId } = req.body;
+  const { fullName, email, phone, guests, date, time, seatType } = req.body;
   const totalCapacity = Number(process.env.CAPACITY_TOTAL || 80);
 
   if (!isValidSlot(date, time)) {
-    await releaseCard(paymentMethodId);
     return res.status(200).json({ ok: false, error: 'Ese día u horario no está disponible.' });
   }
 
@@ -40,7 +38,6 @@ export default async function handler(req, res) {
     );
     if (seatTypeRows.length === 0) {
       await client.query('ROLLBACK');
-      await releaseCard(paymentMethodId);
       return res.status(200).json({ ok: false, error: 'Tipo de asiento no válido.' });
     }
     const seatTypeLabel = seatTypeRows[0].label;
@@ -52,7 +49,6 @@ export default async function handler(req, res) {
     const unitsNeeded = Math.ceil(Number(guests || 0) / capacityPerUnit);
     if (unitsNeeded > seatInventory) {
       await client.query('ROLLBACK');
-      await releaseCard(paymentMethodId);
       return res.status(200).json({ ok: false, error: `Ese tipo de asiento no tiene suficientes unidades para ${guests} personas (hay ${seatInventory} en total, entran ${capacityPerUnit} por unidad). Elegí otro tipo de asiento o reducí el grupo.` });
     }
 
@@ -80,21 +76,19 @@ export default async function handler(req, res) {
 
     if (totalGuestsTaken + Number(guests || 0) > totalCapacity) {
       await client.query('ROLLBACK');
-      await releaseCard(paymentMethodId);
       return res.status(200).json({ ok: false, error: 'Ese horario ya llegó al cupo máximo del lugar. Elegí otro horario.' });
     }
     if (seatUnitsTaken + unitsNeeded > seatInventory) {
       await client.query('ROLLBACK');
-      await releaseCard(paymentMethodId);
       const remaining = Math.max(0, seatInventory - seatUnitsTaken);
       return res.status(200).json({ ok: false, error: `Necesitás ${unitsNeeded} unidades de ese asiento para tu grupo, pero solo quedan ${remaining} libres a esa hora. Elegí otro horario o tipo de asiento.` });
     }
 
     const code = generateCode();
     await client.query(
-      `INSERT INTO reservations (code, full_name, email, phone, guests, seat_type_code, units, date, start_time, end_time, stripe_customer_id, stripe_payment_method_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-      [code, fullName, email, phone, guests, seatType, unitsNeeded, date, time, endTime, stripeCustomerId, paymentMethodId]
+      `INSERT INTO reservations (code, full_name, email, phone, guests, seat_type_code, units, date, start_time, end_time)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [code, fullName, email, phone, guests, seatType, unitsNeeded, date, time, endTime]
     );
 
     await client.query('COMMIT');
@@ -110,7 +104,6 @@ export default async function handler(req, res) {
       try { await client.query('ROLLBACK'); } catch (e) { /* ya se habia cerrado la transaccion */ }
     }
     console.error('confirm-reservation fallo:', err);
-    await releaseCard(paymentMethodId);
     res.status(200).json({ ok: false, error: 'No pudimos confirmar la reserva. Probá de nuevo en un momento.' });
   } finally {
     if (client) client.release();

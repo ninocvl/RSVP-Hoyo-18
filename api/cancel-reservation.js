@@ -1,6 +1,5 @@
 import { sql } from '@vercel/postgres';
 import { syncToSheet } from '../lib/sheetSync.js';
-import { releaseCard } from '../lib/stripeCard.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { rows } = await sql`SELECT cancelled_at, stripe_payment_method_id FROM reservations WHERE code = ${code}`;
+    const { rows } = await sql`SELECT cancelled_at FROM reservations WHERE code = ${code}`;
     if (rows.length === 0) {
       return res.status(200).json({ ok: false, error: 'Código no encontrado.' });
     }
@@ -27,9 +26,6 @@ export default async function handler(req, res) {
 
     // Se manda antes de responder: en Vercel, el proceso puede congelarse
     // apenas se envia la respuesta, cortando cualquier await pendiente.
-    if (isCancelling) {
-      await releaseCard(rows[0].stripe_payment_method_id);
-    }
     await syncToSheet({ action: 'cancel', code, cancelledAt: newCancelledAt });
 
     res.status(200).json({ ok: true, cancelledAt: newCancelledAt });

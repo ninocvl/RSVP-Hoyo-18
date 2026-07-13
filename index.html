@@ -330,15 +330,6 @@
   .guarantee-note svg{flex-shrink:0;margin-top:2px;}
   .guarantee-note p{font-size:13.5px;line-height:1.5;color:rgba(22,35,47,0.8);}
   .guarantee-note strong{color:var(--navy-800);}
-  #card-element{
-    padding:13px 14px;
-    border-radius:var(--radius-s);
-    border:1.5px solid var(--sand);
-    background:var(--cream);
-    transition:border-color 200ms var(--ease);
-  }
-  #card-element.StripeElement--focus{border-color:var(--wood); background:var(--white);}
-  #card-errors{color:#a4453a; font-size:13px; margin-top:8px; min-height:16px;}
 
   /* Submit */
   .submit-btn{
@@ -540,11 +531,8 @@
       <div class="card">
         <div class="guarantee-note">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a6a45" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V5l8-3z"/></svg>
-          <p><strong>Tu tarjeta solo garantiza la reserva.</strong> No se realiza ningún cargo ahora: la usamos únicamente para asegurar la mesa y el consumo dentro del sitio. El número de tarjeta nunca pasa por nuestros servidores.</p>
+          <p><strong>Al reservar, te comprometés a consumir en Casa Costa durante tu horario.</strong> No pedimos tarjeta ni cobramos nada por adelantado.</p>
         </div>
-        <label class="field-label">Tarjeta de crédito o débito</label>
-        <div id="card-element"></div>
-        <div id="card-errors" role="alert"></div>
       </div>
 
       <button type="submit" class="submit-btn" id="submitBtn">
@@ -552,7 +540,7 @@
         <span class="spinner"></span>
       </button>
       <p class="form-error" id="formError"></p>
-      <p class="legal">Al reservar aceptás que Casa Costa retenga tu tarjeta únicamente como garantía de la reserva, sin cargos automáticos.</p>
+      <p class="legal">Al reservar, confirmás que vas a consumir en Casa Costa durante tu horario.</p>
     </form>
   </div>
 </main>
@@ -595,14 +583,11 @@
   </div>
 </footer>
 
-<script src="https://js.stripe.com/v3/"></script>
 <script>
 /* =========================================================
    CONFIGURACION: completar antes de publicar
    ========================================================= */
 const CONFIG = {
-  // Clave PUBLICA de Stripe (pk_live_... o pk_test_...), esta si va en el frontend
-  STRIPE_PUBLISHABLE_KEY: "pk_test_51TrmbP6ozyD5DMebP9F2SQPZkWz8NP3x7x5DemKb7r69OsRJp05xIMEp64opI3eFEoMxxbaDKohhfdE2pyptAIeJ00fwIaQnUe",
   // Número de WhatsApp del equipo del evento, formato internacional sin +
   WHATSAPP_NUMBER: "18495911666",
   // Fechas del evento (deben coincidir con EVENT_DATES en lib/hours.js)
@@ -761,23 +746,6 @@ async function loadAvailability(){
 }
 loadAvailability();
 
-/* ---------- Stripe ---------- */
-let stripe, cardElement;
-if (!CONFIG.STRIPE_PUBLISHABLE_KEY.startsWith('PEGAR')) {
-  stripe = Stripe(CONFIG.STRIPE_PUBLISHABLE_KEY);
-  const elements = stripe.elements();
-  cardElement = elements.create('card', {
-    style: { base: { fontFamily: "'Work Sans', sans-serif", fontSize: '16px', color: '#16232f', '::placeholder': { color: 'rgba(22,35,47,0.4)' } } }
-  });
-  cardElement.mount('#card-element');
-  cardElement.on('change', (e) => {
-    document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
-  });
-} else {
-  document.getElementById('card-element').innerHTML =
-    '<p style="font-size:13px;color:rgba(22,35,47,0.5);">Conectá la clave pública de Stripe en CONFIG para activar este campo.</p>';
-}
-
 /* ---------- Submit ---------- */
 const form = document.getElementById('rsvpForm');
 const submitBtn = document.getElementById('submitBtn');
@@ -799,22 +767,6 @@ form.addEventListener('submit', async (e) => {
   setLoading(true);
 
   try{
-    // 1) Pedimos al backend un SetupIntent (guardar tarjeta, sin cobrar)
-    const siRes = await fetch('/api/create-setup-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName, email })
-    });
-    const siData = await siRes.json();
-    if (!siData.ok) throw new Error(siData.error || 'No pudimos preparar el pago de garantía.');
-
-    // 2) Confirmamos la tarjeta directo con Stripe (nunca toca nuestro servidor)
-    const { setupIntent, error } = await stripe.confirmCardSetup(siData.clientSecret, {
-      payment_method: { card: cardElement, billing_details: { name: fullName, email } }
-    });
-    if (error) throw new Error(error.message);
-
-    // 3) Confirmamos la reserva en el backend
     const resRes = await fetch('/api/confirm-reservation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -823,9 +775,7 @@ form.addEventListener('submit', async (e) => {
         guests: state.guests,
         date: state.date,
         time: state.slot,
-        seatType: state.seatType,
-        stripeCustomerId: siData.customerId,
-        paymentMethodId: setupIntent.payment_method
+        seatType: state.seatType
       })
     });
     const resData = await resRes.json();
