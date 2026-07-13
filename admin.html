@@ -279,7 +279,7 @@ function renderList(){
       <div class="res-card ${r.checkedIn ? 'checked-in' : ''} ${r.vacatedTime ? 'vacated' : ''}">
         <div class="res-main">
           <div class="res-name">${r.fullName}</div>
-          <div class="res-meta">${r.time} · ${r.seatTypeLabel} · ${r.guests} personas · ${r.code}${r.vacatedTime ? ' · Liberada ' + r.vacatedTime : ''}</div>
+          <div class="res-meta">${r.time} · ${r.seatTypeLabel}${r.units > 1 ? ' (x' + r.units + ' juntas)' : ''} · ${r.guests} personas · ${r.code}${r.vacatedTime ? ' · Liberada ' + r.vacatedTime : ''}</div>
         </div>
         <div class="res-actions">
           <a class="icon-btn wa" href="https://wa.me/${String(r.phone||'').replace(/[^0-9]/g,'')}" target="_blank" rel="noopener" aria-label="WhatsApp">

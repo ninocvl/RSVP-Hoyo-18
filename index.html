@@ -632,7 +632,7 @@ const guestCountEl = document.getElementById('guestCount');
 function onGuestsChanged(){
   guestCountEl.textContent = state.guests;
   const current = state.seatTypes.find(s => s.code === state.seatType);
-  if (current && current.capacityPerUnit < state.guests) {
+  if (current && Math.ceil(state.guests / current.capacityPerUnit) > current.totalInventory) {
     state.seatType = null;
     state.slot = null;
   }
@@ -666,10 +666,13 @@ function renderSlots(){
     return;
   }
 
+  const currentSeat = state.seatTypes.find(s => s.code === state.seatType);
+  const unitsNeeded = currentSeat ? Math.ceil(state.guests / currentSeat.capacityPerUnit) : 1;
+
   times.forEach(time => {
     const info = dayAvailability[time];
     const seatRemaining = info.seats[state.seatType] ?? 0;
-    const full = seatRemaining <= 0 || info.totalGuestsRemaining < state.guests;
+    const full = seatRemaining < unitsNeeded || info.totalGuestsRemaining < state.guests;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'slot' + (full ? ' full' : '') + (state.slot === time ? ' active' : '');
@@ -683,8 +686,10 @@ function renderSlots(){
     slotGrid.appendChild(btn);
   });
 
-  const seatLabel = (state.seatTypes.find(s => s.code === state.seatType) || {}).label || '';
-  slotStatus.textContent = 'Disponibilidad de ' + seatLabel + ' por hora, según cuántos son.';
+  const seatLabel = (currentSeat || {}).label || '';
+  slotStatus.textContent = unitsNeeded > 1
+    ? `Para ${state.guests} personas se van a juntar ${unitsNeeded} de "${seatLabel}". Disponibilidad por hora.`
+    : 'Disponibilidad de ' + seatLabel + ' por hora, según cuántos son.';
 }
 
 /* ---------- Seat type selector ---------- */
@@ -693,12 +698,17 @@ const seatRow = document.getElementById('seatRow');
 function renderSeatTypes(){
   seatRow.innerHTML = '';
   state.seatTypes.forEach(st => {
-    const tooSmall = st.capacityPerUnit < state.guests;
+    // Si el grupo no entra en 1 sola unidad, se juntan varias del mismo
+    // tipo (ej. 2 mesas de 4 para 7 personas). Solo queda descartada si ni
+    // juntando todas las que hay hoy, alcanza.
+    const unitsNeeded = Math.ceil(state.guests / st.capacityPerUnit);
+    const doesNotFit = unitsNeeded > st.totalInventory;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'seat-cell' + (state.seatType === st.code ? ' active' : '') + (tooSmall ? ' full' : '');
-    btn.disabled = tooSmall;
-    btn.innerHTML = `<span class="seat-label">${st.label}</span><span class="seat-meta">${tooSmall ? 'No entra tu grupo' : st.totalInventory + ' en total'}</span>`;
+    btn.className = 'seat-cell' + (state.seatType === st.code ? ' active' : '') + (doesNotFit ? ' full' : '');
+    btn.disabled = doesNotFit;
+    const meta = doesNotFit ? 'No entra tu grupo' : (unitsNeeded > 1 ? `Se juntan ${unitsNeeded}` : st.totalInventory + ' en total');
+    btn.innerHTML = `<span class="seat-label">${st.label}</span><span class="seat-meta">${meta}</span>`;
     btn.dataset.seat = st.code;
     btn.addEventListener('click', () => selectSeatType(st.code));
     seatRow.appendChild(btn);
@@ -851,7 +861,7 @@ function showConfirmation(resData, details){
   summary.innerHTML = `
     <div class="summary-row"><span>Titular</span><span>${details.fullName}</span></div>
     <div class="summary-row"><span>Personas</span><span>${details.guests}</span></div>
-    <div class="summary-row"><span>Asiento</span><span>${details.seatLabel}</span></div>
+    <div class="summary-row"><span>Asiento</span><span>${details.seatLabel}${resData.units > 1 ? ` (x${resData.units} juntas)` : ''}</span></div>
     <div class="summary-row"><span>Día</span><span>${formatDate(details.date)}</span></div>
     <div class="summary-row"><span>Hora</span><span>${details.time}</span></div>
     <div class="summary-row"><span>Correo</span><span>${details.email}</span></div>

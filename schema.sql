@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   phone TEXT,
   guests INTEGER NOT NULL,
   seat_type_code TEXT NOT NULL REFERENCES seat_types(code),
+  units INTEGER NOT NULL DEFAULT 1,   -- cuantas unidades de ese tipo se juntaron para el grupo
   date DATE NOT NULL,
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,             -- hora hasta la que reservaron (informativo)

@@ -55,10 +55,13 @@ export default async function handler(req, res) {
     const seatInventory = seatTypeRows[0].total_inventory;
     const capacityPerUnit = seatTypeRows[0].capacity_per_unit;
 
-    if (Number(guests || 0) > capacityPerUnit) {
+    // Si el grupo no entra en 1 sola unidad, se juntan varias del mismo
+    // tipo (ej. 2 mesas de 4 para un grupo de 7).
+    const unitsNeeded = Math.ceil(Number(guests || 0) / capacityPerUnit);
+    if (unitsNeeded > seatInventory) {
       await client.query('ROLLBACK');
       await releaseCard(paymentMethodId);
-      return res.status(200).json({ ok: false, error: `Ese asiento entra hasta ${capacityPerUnit} personas. Elegí otro tipo de asiento o reducí el grupo.` });
+      return res.status(200).json({ ok: false, error: `Ese tipo de asiento no tiene suficientes unidades para ${guests} personas (hay ${seatInventory} en total, entran ${capacityPerUnit} por unidad). Elegí otro tipo de asiento o reducí el grupo.` });
     }
 
     // Ocupacion real: una reserva sigue bloqueando su mesa desde que
@@ -66,7 +69,7 @@ export default async function handler(req, res) {
     // cierre del dia si nadie la libero todavia. Ya no se libera sola
     // despues de 1 hora fija.
     const { rows: dateRows } = await client.query(
-      `SELECT seat_type_code, guests, start_time::text AS start_time,
+      `SELECT seat_type_code, guests, units, start_time::text AS start_time,
               vacated_time::text AS vacated_time
        FROM reservations WHERE date = $1`,
       [date]
@@ -79,28 +82,31 @@ export default async function handler(req, res) {
     });
 
     const totalGuestsTaken = overlapRows.reduce((sum, r) => sum + Number(r.guests), 0);
-    const seatUnitsTaken = overlapRows.filter(r => r.seat_type_code === seatType).length;
+    const seatUnitsTaken = overlapRows
+      .filter(r => r.seat_type_code === seatType)
+      .reduce((sum, r) => sum + Number(r.units || 1), 0);
 
     if (totalGuestsTaken + Number(guests || 0) > totalCapacity) {
       await client.query('ROLLBACK');
       await releaseCard(paymentMethodId);
       return res.status(200).json({ ok: false, error: 'Ese horario ya llegó al cupo máximo del lugar. Elegí otro horario.' });
     }
-    if (seatUnitsTaken + 1 > seatInventory) {
+    if (seatUnitsTaken + unitsNeeded > seatInventory) {
       await client.query('ROLLBACK');
       await releaseCard(paymentMethodId);
-      return res.status(200).json({ ok: false, error: 'Ese tipo de asiento se acaba de agotar para ese horario. Elegí otro.' });
+      const remaining = Math.max(0, seatInventory - seatUnitsTaken);
+      return res.status(200).json({ ok: false, error: `Necesitás ${unitsNeeded} unidades de ese asiento para tu grupo, pero solo quedan ${remaining} libres a esa hora. Elegí otro horario o tipo de asiento.` });
     }
 
     const code = generateCode();
     await client.query(
-      `INSERT INTO reservations (code, full_name, email, phone, guests, seat_type_code, date, start_time, end_time, stripe_customer_id, stripe_payment_method_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [code, fullName, email, phone, guests, seatType, date, time, endTime, stripeCustomerId, paymentMethodId]
+      `INSERT INTO reservations (code, full_name, email, phone, guests, seat_type_code, units, date, start_time, end_time, stripe_customer_id, stripe_payment_method_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [code, fullName, email, phone, guests, seatType, unitsNeeded, date, time, endTime, stripeCustomerId, paymentMethodId]
     );
 
     await client.query('COMMIT');
-    res.status(200).json({ ok: true, code });
+    res.status(200).json({ ok: true, code, units: unitsNeeded });
 
     await syncToSheet({ action: 'reservation', code, fullName, email, phone, guests, seatType, date, time });
     await sendConfirmationEmail({ to: email, fullName, code, date, time, seatTypeLabel, guests });

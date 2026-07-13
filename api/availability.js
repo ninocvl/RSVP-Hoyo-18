@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     `;
     const { rows: reservations } = await sql`
       SELECT date::text AS date, start_time::text AS start_time,
-             vacated_time::text AS vacated_time, seat_type_code, guests
+             vacated_time::text AS vacated_time, seat_type_code, guests, units
       FROM reservations
       WHERE date = ANY(${dates})
     `;
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         const takenBySeat = {};
         let totalGuests = 0;
         for (const r of overlapping) {
-          takenBySeat[r.seat_type_code] = (takenBySeat[r.seat_type_code] || 0) + 1;
+          takenBySeat[r.seat_type_code] = (takenBySeat[r.seat_type_code] || 0) + Number(r.units || 1);
           totalGuests += Number(r.guests);
         }
 

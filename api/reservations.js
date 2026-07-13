@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   try {
     const { rows } = await sql`
-      SELECT r.code, r.full_name, r.email, r.phone, r.guests, r.date::text AS date,
+      SELECT r.code, r.full_name, r.email, r.phone, r.guests, r.units, r.date::text AS date,
              r.start_time::text AS start_time, r.end_time::text AS end_time,
              r.vacated_time::text AS vacated_time,
              r.seat_type_code, s.label AS seat_type_label, r.checked_in
@@ -24,6 +24,7 @@ export default async function handler(req, res) {
       email: r.email,
       phone: r.phone,
       guests: r.guests,
+      units: r.units,
       date: r.date,
       time: r.start_time.slice(0, 5),
       endTime: r.end_time.slice(0, 5),
